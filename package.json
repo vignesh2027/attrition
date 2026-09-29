@@ -1,0 +1,15 @@
+{
+  "name": "semconv-sentinel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch": "node scripts/fetch-semconv.mjs",
+    "build-data": "node scripts/build-dataset.mjs",
+    "import": "node scripts/import-to-sanity.mjs"
+  },
+  "dependencies": {
+    "@sanity/client": "^8.8.0",
+    "dotenv": "^18.0.4",
+    "yaml": "^2.9.1"
+  }
+}
