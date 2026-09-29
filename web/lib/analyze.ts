@@ -154,7 +154,7 @@ export async function scan(code: string): Promise<ScanResult> {
   for (const u of usages) {
     const doc = byKey.get(u.key)
     const kindMatters = doc?.deprecation?.verdict === 'SPAN_KIND_DEPENDENT'
-    const g = `${u.key}|${kindMatters ? u.spanKind : ''}`
+    const g = `${u.key}|${kindMatters ? u.spanKind : ''}|${u.form === 'comment' ? 'comment' : 'code'}`
     groups.set(g, [...(groups.get(g) ?? []), u])
   }
 

@@ -55,16 +55,17 @@ type edit struct {
 }
 
 type finding struct {
-	Key               string `json:"key"`
-	Status            string `json:"status"`
-	Verdict           string `json:"verdict"`
-	Lines             []int  `json:"lines"`
-	Replacement       string `json:"replacement"`
-	ReplacementReason string `json:"replacementReason"`
-	NeedsDecision     bool   `json:"needsDecision"`
-	DeprecatedIn      string `json:"deprecatedIn"`
-	SpanKind          string `json:"spanKind"`
-	SourceURL         string `json:"sourceUrl"`
+	Key               string   `json:"key"`
+	Status            string   `json:"status"`
+	Verdict           string   `json:"verdict"`
+	Lines             []int    `json:"lines"`
+	Forms             []string `json:"forms"`
+	Replacement       string   `json:"replacement"`
+	ReplacementReason string   `json:"replacementReason"`
+	NeedsDecision     bool     `json:"needsDecision"`
+	DeprecatedIn      string   `json:"deprecatedIn"`
+	SpanKind          string   `json:"spanKind"`
+	SourceURL         string   `json:"sourceUrl"`
 }
 
 type scanResult struct {
@@ -87,6 +88,7 @@ type report struct {
 	FilesWalked  int            `json:"filesWalked"`
 	FilesScanned int            `json:"filesScanned"`
 	Deprecated   int            `json:"deprecatedUsages"`
+	InComments   int            `json:"deprecatedInComments"`
 	ByVerdict    map[string]int `json:"byVerdict"`
 	ByKey        map[string]int `json:"byKey"`
 	Files        []fileReport   `json:"files"`
@@ -224,6 +226,10 @@ func run(api string, files []string, workers int) report {
 	rep.FilesScanned = len(files)
 	for _, fr := range results {
 		for _, f := range fr.Findings {
+			if len(f.Forms) == 1 && f.Forms[0] == "comment" {
+				rep.InComments += len(f.Lines)
+				continue
+			}
 			rep.Deprecated += len(f.Lines)
 			rep.ByVerdict[f.Verdict] += len(f.Lines)
 			rep.ByKey[f.Key] += len(f.Lines)
@@ -297,7 +303,7 @@ func applyEdits(files []fileReport) (int, error) {
 
 func printText(w io.Writer, rep report) {
 	fmt.Fprintf(w, "Semconv Sentinel, spec %s\n", rep.SpecRelease)
-	fmt.Fprintf(w, "%d source files walked, %d mention attributes, %d deprecated usages\n\n", rep.FilesWalked, rep.FilesScanned, rep.Deprecated)
+	fmt.Fprintf(w, "%d source files walked, %d mention attributes, %d deprecated usages in code, %d in comments\n\n", rep.FilesWalked, rep.FilesScanned, rep.Deprecated, rep.InComments)
 	tw := tabwriter.NewWriter(w, 0, 2, 2, ' ', 0)
 	for _, fr := range rep.Files {
 		if fr.Error != "" {

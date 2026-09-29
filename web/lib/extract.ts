@@ -17,7 +17,7 @@ export type Usage = {
   line: number
   column: number
   text: string
-  form: 'string' | 'constant' | 'enum-constant'
+  form: 'string' | 'constant' | 'enum-constant' | 'comment'
   spanKind: SpanKind | null
   spanKindLine: number | null
 }
@@ -165,7 +165,14 @@ export function extract(code: string, index: KeyIndex): Extraction {
       }
     }
 
-    const push = (key: string, column: number, raw: string, form: Usage['form']) => {
+    const commentAt = (() => {
+      const t = text.trimStart()
+      if (/^(\/\/|#|\*|\/\*|--)/.test(t)) return 0
+      const i = text.search(/\s(\/\/|#)\s/)
+      return i >= 0 ? i : Infinity
+    })()
+    const push = (key: string, column: number, raw: string, found: Usage['form']) => {
+      const form: Usage['form'] = column - 1 >= commentAt ? 'comment' : found
       const id = `${line}:${column}:${key}`
       if (seen.has(id)) return
       seen.add(id)

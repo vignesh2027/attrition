@@ -57,3 +57,15 @@ test('patch only touches the changed literal', () => {
   assert.match(p, /-attribute\.String\("db\.system", "redis"\)/)
   assert.match(p, /\+attribute\.String\("db\.system\.name", "redis"\)/)
 })
+
+test('usages inside comments are marked, not treated as code', () => {
+  const got = extract('// use semconv.DBSystemSqlite here\nx := attribute.String("db.system", "a") // was "db.name"\n', index).usages
+  assert.deepEqual(
+    got.map((u) => [u.line, u.key, u.form]),
+    [
+      [1, 'db.system', 'comment'],
+      [2, 'db.system', 'string'],
+      [2, 'db.name', 'comment'],
+    ],
+  )
+})
