@@ -59,7 +59,7 @@ footer{margin-top:60px;color:var(--muted);font-size:14px}
     <div class="card"><h3><span class="old">net.peer.name</span></h3><p>Two answers. <code>server.address</code> on client spans, <code>client.address</code> on server spans. The agent reads the span kind from your code, and asks when it cannot.</p></div>
     <div class="card"><h3><span class="old">db.sql.table</span></h3><p>Becomes <code>db.collection.name</code> only if the value is not extracted from <code>db.query.text</code>. A condition, not a rename.</p></div>
     <div class="card"><h3><span class="old">db.name</span> <span class="new">db.namespace</span></h3><p>The registry says renamed. The migration guide says removed and integrated. Both are shown, and the key stays out of the patch.</p></div>
-    <div class="card"><h3><span class="old">gen_ai.*</span></h3><p>58 attributes moved to a separate repository in v1.44.0. Moved is not removed, and the agent links to where they live now.</p></div>
+    <div class="card"><h3><span class="old">gen_ai.*</span></h3><p>58 GenAI attributes, including <code>mcp.*</code> and <code>openai.*</code>, moved to a separate repository in v1.42.0. Moved is not removed, and the agent links to where they live now.</p></div>
   </div>
 
   <h2>Built on Sanity Context</h2>

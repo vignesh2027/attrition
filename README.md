@@ -18,7 +18,7 @@ Paste instrumentation code. Semconv Sentinel finds every attribute key and SDK c
 
 ## Why this needs structured content
 
-The semantic conventions rename attributes between releases. `http.method` became `http.request.method`, `db.system` became `db.system.name`, and 58 `gen_ai.*` attributes moved to a separate repository in v1.44.0. Old blog posts, SDK constants and copied snippets keep the retired names alive.
+The semantic conventions rename attributes between releases. `http.method` became `http.request.method`, `db.system` became `db.system.name`, and in v1.42.0, 58 GenAI attributes (`gen_ai.*`, `mcp.*`, `openai.*`) moved to a separate repository. Old blog posts, SDK constants and copied snippets keep the retired names alive.
 
 A text search over the docs cannot answer these correctly:
 
