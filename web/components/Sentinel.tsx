@@ -213,7 +213,7 @@ function Results({result}: {result: ScanResult}) {
               .filter((g) => g.optIn)
               .map((g) => (
                 <span key={g.entry} className="block">
-                  <strong>{g.entry.split('/').pop()}:</strong> {g.optIn}
+                  <strong>{g.entry.split('/').pop()}:</strong> <Inline text={g.optIn!} />
                 </span>
               ))}
           </span>
@@ -308,6 +308,21 @@ function Results({result}: {result: ScanResult}) {
   )
 }
 
+// Renders the two inline markdown forms the spec text uses: `code` and [text](url).
+function Inline({text}: {text: string}) {
+  const parts = text.split(/(`[^`]+`|\[[^\]]+\]\([^)]+\))/g)
+  return (
+    <>
+      {parts.map((p, i) => {
+        if (p.startsWith('`') && p.endsWith('`')) return <code key={i}>{p.slice(1, -1)}</code>
+        const link = p.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+        if (link) return <a key={i} href={link[2]}>{link[1]}</a>
+        return <span key={i}>{p}</span>
+      })}
+    </>
+  )
+}
+
 function Stat({n, label, tone}: {n: number; label: string; tone?: 'warn' | 'ok'}) {
   return (
     <div className={`stat ${tone ?? ''}`}>
@@ -332,7 +347,9 @@ function FindingCard({f, pinned}: {f: Finding; pinned?: string}) {
         )}
         <span className="badge">{VERDICT_LABEL[f.verdict] ?? f.verdict}</span>
       </div>
-      <p className="why">{f.replacementReason}</p>
+      <p className="why">
+        <Inline text={f.replacementReason} />
+      </p>
       {f.verdict === 'SPAN_KIND_DEPENDENT' && (
         <table className="kinds">
           <tbody>
@@ -395,13 +412,23 @@ function FindingCard({f, pinned}: {f: Finding; pinned?: string}) {
           </dd>
         </div>
       </dl>
-      {f.note && f.verdict !== 'RENAMED' && <p className="note">{f.note}</p>}
+      {f.note && f.verdict !== 'RENAMED' && f.verdict !== 'MOVED_OUT' && f.note !== f.replacementReason && (
+        <p className="note">
+          <Inline text={f.note} />
+        </p>
+      )}
       {f.guidance && (
         <div className="guide">
           <span className="kb">Knowledge Base</span>
           <span>
             Migration guide{f.guidance.section ? <>, {f.guidance.section}</> : ''}: <code>{f.guidance.change}</code>
-            {f.guidance.comment ? <>. {f.guidance.comment}</> : '. No extra behaviour change listed.'}
+            {f.guidance.comment ? (
+              <>
+                . <Inline text={f.guidance.comment} />
+              </>
+            ) : (
+              '. No extra behaviour change listed.'
+            )}
             {f.guidance.disagreesWithRegistry && (
               <strong className="block warn-text">The registry and the migration guide disagree here, so this key is left out of the patch.</strong>
             )}

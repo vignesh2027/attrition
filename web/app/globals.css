@@ -636,6 +636,9 @@ button.ghost {
 }
 
 @media (prefers-color-scheme: dark) {
+  .tool {
+    color: #ffd27a;
+  }
   .kb {
     color: #84caff;
   }
