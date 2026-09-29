@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semconv Sentinel</title>
+<meta name="description" content="Find the OpenTelemetry attribute names the spec already retired. An agent on Sanity Context over all 940 semantic convention attributes.">
+<meta property="og:title" content="Semconv Sentinel">
+<meta property="og:description" content="Find the OpenTelemetry attribute names the spec already retired.">
+<meta property="og:image" content="https://vignesh2027.github.io/semconv-sentinel/img/node-light.png">
+<style>
+:root{--bg:#f7f7f4;--panel:#fff;--ink:#16181d;--muted:#5f6571;--line:#e3e3dd;--accent:#f5a800;--navy:#1f2a44;--ok:#1b7f4b;--warn:#b54708;--code:#f0f0ea}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--panel:#161920;--ink:#e8e9ec;--muted:#9097a3;--line:#262a33;--navy:#c9d3ea;--ok:#6fd39c;--warn:#ffb866;--code:#1d2029}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:inherit;text-decoration-color:var(--accent);text-underline-offset:3px}
+code{font:0.88em ui-monospace,"SF Mono",Menlo,monospace;background:var(--code);padding:1px 5px;border-radius:4px}
+.wrap{max-width:1080px;margin:0 auto;padding:40px 16px 80px}
+.brand{display:inline-flex;gap:8px;align-items:center;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+h1{font-size:clamp(30px,5vw,52px);line-height:1.08;letter-spacing:-.025em;margin:12px 0 16px;max-width:18ch;color:var(--navy)}
+.lede{font-size:18px;color:var(--muted);max-width:62ch}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin:24px 0 8px}
+.btn{display:inline-block;padding:11px 18px;border-radius:9px;font-weight:600;text-decoration:none;border:1px solid var(--line);background:var(--panel)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#3d2a00}
+.shot{margin:36px 0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}
+.shot img{display:block;width:100%;height:auto}
+h2{font-size:26px;letter-spacing:-.015em;margin:56px 0 12px;color:var(--navy)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card h3{margin:0 0 6px;font-size:16px}
+.card p{margin:0;color:var(--muted);font-size:15px}
+.num{font-size:34px;font-weight:700;line-height:1.1}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:15px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.table{overflow-x:auto}
+.old{text-decoration:line-through;color:var(--muted)}
+.new{color:var(--ok);font-weight:600}
+footer{margin-top:60px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="brand"><span class="dot"></span>Semconv Sentinel</div>
+  <h1>Find the OpenTelemetry attribute names the spec already retired.</h1>
+  <p class="lede">Paste instrumentation code. Every attribute key and SDK constant is checked against all 940 attributes of the semantic conventions, stored as structured content in Sanity and read through Sanity Context. You get the verdict, the replacement for your span kind, the release that deprecated it, the spec line that says so, and a patch.</p>
+  <div class="cta">
+    <a class="btn primary" href="https://semconv-sentinel.vercel.app">Open the live app</a>
+    <a class="btn" href="https://github.com/vignesh2027/semconv-sentinel">Source on GitHub</a>
+    <a class="btn" href="https://github.com/vignesh2027/semconv-sentinel/blob/main/bench/RESULTS.md">Real repository results</a>
+  </div>
+
+  <div class="shot"><img src="img/node-light.png" alt="Scan of a TypeScript checkout service: net.peer.name resolves to client.address on the server span and server.address on the client span" loading="lazy"></div>
+
+  <h2>What a keyword search gets wrong</h2>
+  <div class="grid">
+    <div class="card"><h3><span class="old">net.peer.name</span></h3><p>Two answers. <code>server.address</code> on client spans, <code>client.address</code> on server spans. The agent reads the span kind from your code, and asks when it cannot.</p></div>
+    <div class="card"><h3><span class="old">db.sql.table</span></h3><p>Becomes <code>db.collection.name</code> only if the value is not extracted from <code>db.query.text</code>. A condition, not a rename.</p></div>
+    <div class="card"><h3><span class="old">db.name</span> <span class="new">db.namespace</span></h3><p>The registry says renamed. The migration guide says removed and integrated. Both are shown, and the key stays out of the patch.</p></div>
+    <div class="card"><h3><span class="old">gen_ai.*</span></h3><p>58 attributes moved to a separate repository in v1.44.0. Moved is not removed, and the agent links to where they live now.</p></div>
+  </div>
+
+  <h2>Built on Sanity Context</h2>
+  <div class="grid">
+    <div class="card"><div class="num">1,031</div><p>documents in the public dataset <code>y9raau23/production</code>, imported from 26 spec releases by a deterministic script</p></div>
+    <div class="card"><div class="num">206</div><p>deprecated attributes, each with a verdict computed from the spec's own <code>reason</code>, <code>renamed_to</code> and <code>note</code></p></div>
+    <div class="card"><div class="num">107</div><p>sources in the Knowledge Base: a dataset slice, five official migration guides and two older spec pages</p></div>
+    <div class="card"><div class="num">3</div><p>Context tools used: <code>groq_query</code> for verdicts, <code>knowledge_base_read</code> for migration guidance, <code>schema_explorer</code> in chat</p></div>
+  </div>
+
+  <h2>Real repositories, pinned commits</h2>
+  <div class="table">
+  <table>
+    <thead><tr><th>Repository</th><th>Deprecated usages in code</th><th>Files to touch</th></tr></thead>
+    <tbody>
+      <tr><td><a href="https://github.com/open-telemetry/opentelemetry-demo/tree/1fce20e">open-telemetry/opentelemetry-demo</a></td><td class="n">6</td><td class="n">4</td></tr>
+      <tr><td><a href="https://github.com/jaegertracing/jaeger/tree/34a240c">jaegertracing/jaeger</a></td><td class="n">67</td><td class="n">13</td></tr>
+      <tr><td><a href="https://github.com/redis/go-redis/tree/d8ee0a5">redis/go-redis</a></td><td class="n">9</td><td class="n">4</td></tr>
+      <tr><td><a href="https://github.com/go-gorm/opentelemetry/tree/8ccd419">go-gorm/opentelemetry</a></td><td class="n">0</td><td class="n">0</td></tr>
+      <tr><td><a href="https://github.com/uptrace/opentelemetry-go-extra/tree/d0bd674">uptrace/opentelemetry-go-extra</a></td><td class="n">18</td><td class="n">7</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="color:var(--muted);font-size:14px">A finding means the key is deprecated in the spec. Fixtures that read old data, or libraries that dual-emit on purpose during a migration, may keep the old key for now. Every line is linked in the results file.</p>
+
+  <div class="shot"><img src="img/python-dark.png" alt="Scan of a Python service with Knowledge Base migration guidance on each finding" loading="lazy"></div>
+
+  <footer>
+    <p>Data from <a href="https://github.com/open-telemetry/semantic-conventions">open-telemetry/semantic-conventions</a>, Apache License 2.0. Built by <a href="https://github.com/vignesh2027">vignesh2027</a> for the DEV Sanity Challenge.</p>
+  </footer>
+</main>
+</body>
+</html>
