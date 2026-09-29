@@ -205,6 +205,21 @@ function Results({result}: {result: ScanResult}) {
       {deprecated.length === 0 && result.summary.usages > 0 && <p className="good">No deprecated attributes. Every key here is current in {result.specRelease}.</p>}
       {result.summary.usages === 0 && <p className="muted">No OpenTelemetry attribute keys or semconv constants found in this code.</p>}
 
+      {result.migrationGuides.some((g) => g.optIn) && (
+        <div className="guide top">
+          <span className="kb">Knowledge Base</span>
+          <span>
+            {result.migrationGuides
+              .filter((g) => g.optIn)
+              .map((g) => (
+                <span key={g.entry} className="block">
+                  <strong>{g.entry.split('/').pop()}:</strong> {g.optIn}
+                </span>
+              ))}
+          </span>
+        </div>
+      )}
+
       <ol className="findings">
         {deprecated.map((f) => (
           <FindingCard key={`${f.key}-${f.spanKind}-${f.lines[0]}`} f={f} pinned={result.pinnedVersion?.version} />
@@ -381,6 +396,24 @@ function FindingCard({f, pinned}: {f: Finding; pinned?: string}) {
         </div>
       </dl>
       {f.note && f.verdict !== 'RENAMED' && <p className="note">{f.note}</p>}
+      {f.guidance && (
+        <div className="guide">
+          <span className="kb">Knowledge Base</span>
+          <span>
+            Migration guide{f.guidance.section ? <>, {f.guidance.section}</> : ''}: <code>{f.guidance.change}</code>
+            {f.guidance.comment ? <>. {f.guidance.comment}</> : '. No extra behaviour change listed.'}
+            {f.guidance.disagreesWithRegistry && (
+              <strong className="block warn-text">The registry and the migration guide disagree here, so this key is left out of the patch.</strong>
+            )}
+            {f.guidance.appliesToOtherSpanKind && (
+              <strong className="block warn-text">
+                The guide lists this under {f.guidance.section?.toLowerCase().includes('client') ? 'client' : 'server'} spans only. This usage is on a {f.spanKind}{' '}
+                span, so the registry answer above applies instead.
+              </strong>
+            )}
+          </span>
+        </div>
+      )}
     </li>
   )
 }

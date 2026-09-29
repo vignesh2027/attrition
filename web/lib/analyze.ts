@@ -3,7 +3,8 @@
 // dependent attributes is chosen from the span kind found in the code, and
 // left open when the code does not state one.
 import 'server-only'
-import {groq, groqString, type TraceEntry} from './context'
+import {groq, groqString, kbRead, type TraceEntry} from './context'
+import {GUIDE_FOR_NAMESPACE, guidanceFor, optInHint, type Guidance} from './guidance'
 import {buildIndex, extract, type KeyIndex, type SpanKind, type Usage} from './extract'
 import {buildPatch, type Edit} from './patch'
 
@@ -56,6 +57,7 @@ export type Finding = {
   documentId: string
   spanKind: SpanKind | null
   spanKindLine: number | null
+  guidance?: Guidance | null
 }
 
 export type ScanResult = {
@@ -64,8 +66,10 @@ export type ScanResult = {
   specRelease: string
   findings: Finding[]
   unknown: Array<{key: string; line: number; namespace: string}>
+  migrationGuides: Array<{entry: string; optIn: string | null}>
   summary: {usages: number; attributes: number; deprecated: number; autoFixable: number; needDecision: number}
   patch: string | null
+  edits: Edit[]
   trace: TraceEntry[]
 }
 
@@ -202,6 +206,39 @@ export async function scan(code: string): Promise<ScanResult> {
     }
   }
 
+  // Knowledge Base: add what the official migration guide says about each key.
+  const migrationGuides: ScanResult['migrationGuides'] = []
+  const entries = [...new Set(findings.filter((f) => f.status === 'deprecated').map((f) => GUIDE_FOR_NAMESPACE[f.key.split('.')[0]]).filter(Boolean))]
+  await Promise.all(
+    entries.map(async (entry) => {
+      try {
+        const text = await kbRead([entry], trace)
+        if (!text) return
+        migrationGuides.push({entry, optIn: optInHint(text)})
+        for (const f of findings) {
+          if (GUIDE_FOR_NAMESPACE[f.key.split('.')[0]] !== entry) continue
+          const g = guidanceFor(f.key, entry, text)
+          // The guide files some renames under one span kind only. Say so when
+          // this usage sits on the other kind, where the registry answer differs.
+          const kinds = [...new Set((g?.section ?? '').toLowerCase().match(/\b(client|server)\b/g) ?? [])]
+          const kind = kinds.length === 1 ? kinds[0] : undefined
+          if (g && kind && f.spanKind && kind !== f.spanKind) g.appliesToOtherSpanKind = true
+          if (g && (f.verdict === 'RENAMED' || f.verdict === 'REPLACED') && /^(removed|integrated)\b/i.test(g.comment ?? '')) {
+            g.disagreesWithRegistry = true
+            f.needsDecision = true
+            f.replacementReason = `The registry says renamed to ${f.replacement}, but the migration guide says: "${g.comment}". Check the value before swapping the key.`
+          }
+          f.guidance = g
+        }
+      } catch {
+        // The Knowledge Base is an enrichment. A failure here never hides a verdict.
+      }
+    }),
+  )
+
+  const held = new Set(findings.filter((f) => f.needsDecision).map((f) => f.key))
+  const safeEdits = edits.filter((e) => ![...held].some((k) => e.from.slice(1, -1) === k))
+
   findings.sort((a, b) => Number(a.status === 'current') - Number(b.status === 'current') || a.lines[0] - b.lines[0])
   const deprecated = findings.filter((f) => f.status === 'deprecated')
   return {
@@ -210,6 +247,7 @@ export async function scan(code: string): Promise<ScanResult> {
     specRelease: release ?? 'unknown',
     findings,
     unknown,
+    migrationGuides,
     summary: {
       usages: usages.length,
       attributes: findings.length,
@@ -217,7 +255,8 @@ export async function scan(code: string): Promise<ScanResult> {
       autoFixable: deprecated.filter((f) => f.replacement && !f.needsDecision).length,
       needDecision: deprecated.filter((f) => f.needsDecision).length,
     },
-    patch: edits.length ? buildPatch(code, edits) : null,
+    patch: safeEdits.length ? buildPatch(code, safeEdits) : null,
+    edits: safeEdits,
     trace,
   }
 }

@@ -15,11 +15,14 @@ function token() {
 
 let rpcId = 0
 
-async function callTool(name: string, args: Record<string, unknown>): Promise<string> {
-  const res = await fetch(MCP_URL, {
+export const KB_MCP_URL = process.env.SANITY_KB_MCP_URL ?? ''
+export const KB_ID = process.env.SANITY_KB_ID ?? ''
+
+async function callTool(name: string, args: Record<string, unknown>, url = MCP_URL, bearer = token()): Promise<string> {
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${token()}`,
+      Authorization: `Bearer ${bearer}`,
       'Content-Type': 'application/json',
       Accept: 'application/json, text/event-stream',
     },
@@ -39,6 +42,17 @@ export async function groq<T>(query: string, trace: TraceEntry[]): Promise<T> {
   const parsed = JSON.parse(text) as {meta?: {resultCount?: number}; result: T}
   trace.push({tool: 'groq_query', query, ms: Date.now() - started, resultCount: parsed.meta?.resultCount})
   return parsed.result
+}
+
+// Reads Knowledge Base entries through the organization-level Context MCP
+// endpoint. Returns null when the Knowledge Base is not configured.
+export async function kbRead(paths: string[], trace: TraceEntry[]): Promise<string | null> {
+  const orgToken = process.env.SANITY_ORGANIZATION_TOKEN
+  if (!KB_MCP_URL || !KB_ID || !orgToken || !paths.length) return null
+  const started = Date.now()
+  const text = await callTool('knowledge_base_read', {knowledgeBase: KB_ID, paths}, KB_MCP_URL, orgToken)
+  trace.push({tool: 'knowledge_base_read', query: paths.join(', '), ms: Date.now() - started, resultCount: paths.length})
+  return text
 }
 
 // GROQ has no bind parameters through the MCP tool, so literal values are
