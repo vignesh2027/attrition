@@ -1,0 +1,145 @@
+{
+  "specRelease": "v1.44.0",
+  "filesWalked": 323,
+  "filesScanned": 19,
+  "deprecatedUsages": 6,
+  "deprecatedInComments": 0,
+  "byVerdict": {
+    "MERGED_INTO": 1,
+    "MOVED_OUT": 1,
+    "RENAMED": 3,
+    "USE_SIGNAL_FIELD": 1
+  },
+  "byKey": {
+    "event.name": 1,
+    "gen_ai.input.messages": 1,
+    "http.status_code": 1,
+    "messaging.kafka.destination.partition": 1,
+    "messaging.kafka.message.offset": 1,
+    "peer.service": 1
+  },
+  "files": [
+    {
+      "path": "src/checkout/main.go",
+      "findings": [
+        {
+          "key": "messaging.kafka.message.offset",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            688
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "messaging.kafka.offset",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.27.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/messaging/deprecated/registry-deprecated.yaml#L75"
+        },
+        {
+          "key": "peer.service",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            735
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "service.peer.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.39.0",
+          "spanKind": "producer",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/peer/deprecated.yaml#L11"
+        },
+        {
+          "key": "messaging.kafka.destination.partition",
+          "status": "deprecated",
+          "verdict": "MERGED_INTO",
+          "lines": [
+            740
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "messaging.destination.partition.id",
+          "replacementReason": "Fold this value into the named attribute; it is not a plain rename.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.25.0",
+          "spanKind": "producer",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/messaging/deprecated/registry-deprecated.yaml#L8"
+        }
+      ]
+    },
+    {
+      "path": "src/frontend-proxy/envoy.tmpl.yaml",
+      "findings": [
+        {
+          "key": "event.name",
+          "status": "deprecated",
+          "verdict": "USE_SIGNAL_FIELD",
+          "lines": [
+            134
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "",
+          "replacementReason": "The value of this attribute MUST now be set as the value of the EventName field on the LogRecord to indicate that the LogRecord represents an Event.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/event/deprecated/registry-deprecated.yaml#L8"
+        }
+      ]
+    },
+    {
+      "path": "src/frontend/utils/telemetry/InstrumentationMiddleware.ts",
+      "findings": [
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            46
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        }
+      ]
+    },
+    {
+      "path": "src/load-generator/locustfile.py",
+      "findings": [
+        {
+          "key": "gen_ai.input.messages",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            242
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/gen-ai/deprecated/registry-deprecated.yaml#L1121"
+        }
+      ]
+    }
+  ]
+}

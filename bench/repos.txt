@@ -1,0 +1,6 @@
+# owner/repo commit
+open-telemetry/opentelemetry-demo 1fce20e
+jaegertracing/jaeger 34a240c
+redis/go-redis d8ee0a5
+go-gorm/opentelemetry 8ccd419
+uptrace/opentelemetry-go-extra d0bd674

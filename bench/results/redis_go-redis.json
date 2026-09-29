@@ -1,0 +1,165 @@
+{
+  "specRelease": "v1.44.0",
+  "filesWalked": 174,
+  "filesScanned": 6,
+  "deprecatedUsages": 9,
+  "deprecatedInComments": 0,
+  "byVerdict": {
+    "MERGED_INTO": 2,
+    "RENAMED": 6,
+    "SPLIT": 1
+  },
+  "byKey": {
+    "code.function": 2,
+    "db.connection_string": 1,
+    "db.statement": 2,
+    "db.system": 3,
+    "pool.name": 1
+  },
+  "files": [
+    {
+      "path": "extra/rediscensus/rediscensus.go",
+      "findings": [
+        {
+          "key": "db.system",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            27,
+            49
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "db.system.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L370"
+        }
+      ],
+      "edits": [
+        {
+          "line": 27,
+          "from": "\"db.system\"",
+          "to": "\"db.system.name\""
+        },
+        {
+          "line": 49,
+          "from": "\"db.system\"",
+          "to": "\"db.system.name\""
+        }
+      ]
+    },
+    {
+      "path": "extra/redisotel/config.go",
+      "findings": [
+        {
+          "key": "db.system",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            94
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "db.system.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L370"
+        }
+      ]
+    },
+    {
+      "path": "extra/redisotel/metrics.go",
+      "findings": [
+        {
+          "key": "pool.name",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            58
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "db.client.connection.pool.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L631"
+        }
+      ],
+      "edits": [
+        {
+          "line": 58,
+          "from": "\"pool.name\"",
+          "to": "\"db.client.connection.pool.name\""
+        }
+      ]
+    },
+    {
+      "path": "extra/redisotel/tracing.go",
+      "findings": [
+        {
+          "key": "db.connection_string",
+          "status": "deprecated",
+          "verdict": "SPLIT",
+          "lines": [
+            75
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "",
+          "replacementReason": "Set all of: server.address, server.port.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.25.0",
+          "spanKind": "client",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L9"
+        },
+        {
+          "key": "code.function",
+          "status": "deprecated",
+          "verdict": "MERGED_INTO",
+          "lines": [
+            120,
+            162
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "code.function.name",
+          "replacementReason": "Fold this value into the named attribute; it is not a plain rename.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "client",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/code/registry-deprecated.yaml#L8"
+        },
+        {
+          "key": "db.statement",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            128,
+            170
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "db.query.text",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "client",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L43"
+        }
+      ]
+    }
+  ]
+}

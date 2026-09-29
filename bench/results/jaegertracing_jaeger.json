@@ -1,0 +1,899 @@
+{
+  "specRelease": "v1.44.0",
+  "filesWalked": 754,
+  "filesScanned": 59,
+  "deprecatedUsages": 67,
+  "deprecatedInComments": 1,
+  "byVerdict": {
+    "MOVED_OUT": 15,
+    "RENAMED": 52
+  },
+  "byKey": {
+    "db.system": 1,
+    "deployment.environment": 4,
+    "gen_ai.agent.name": 1,
+    "gen_ai.agent.version": 1,
+    "gen_ai.conversation.id": 1,
+    "gen_ai.operation.name": 2,
+    "gen_ai.tool.call.arguments": 3,
+    "gen_ai.tool.call.result": 4,
+    "gen_ai.tool.name": 1,
+    "http.method": 6,
+    "http.status_code": 40,
+    "mcp.method.name": 1,
+    "mcp.session.id": 1,
+    "peer.service": 1
+  },
+  "files": [
+    {
+      "path": "cmd/anonymizer/app/anonymizer/anonymizer.go",
+      "findings": [
+        {
+          "key": "http.method",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            25
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.request.method",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L7"
+        },
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            26
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        }
+      ],
+      "edits": [
+        {
+          "line": 25,
+          "from": "\"http.method\"",
+          "to": "\"http.request.method\""
+        },
+        {
+          "line": 26,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        }
+      ]
+    },
+    {
+      "path": "cmd/jaeger/internal/extension/jaegerquery/internal/mcptools/internal/types/search_traces.go",
+      "findings": [
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            24
+          ],
+          "forms": [
+            "comment"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        }
+      ]
+    },
+    {
+      "path": "internal/storage/integration/filters.go",
+      "findings": [
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            131,
+            151,
+            156,
+            188,
+            303,
+            313
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        },
+        {
+          "key": "deployment.environment",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            178,
+            186
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "deployment.environment.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.27.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/deployment/deprecated/registry-deprecated.yaml#L7"
+        }
+      ],
+      "edits": [
+        {
+          "line": 131,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 151,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 156,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 188,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 303,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 313,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 178,
+          "from": "\"deployment.environment\"",
+          "to": "\"deployment.environment.name\""
+        },
+        {
+          "line": 186,
+          "from": "\"deployment.environment\"",
+          "to": "\"deployment.environment.name\""
+        }
+      ]
+    },
+    {
+      "path": "internal/telemetry/otelsemconv/semconv.go",
+      "findings": [
+        {
+          "key": "db.system",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            27
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "db.system.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L370"
+        },
+        {
+          "key": "gen_ai.operation.name",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            85,
+            86
+          ],
+          "forms": [
+            "enum-constant"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/gen-ai/deprecated/registry-deprecated.yaml#L914"
+        },
+        {
+          "key": "mcp.method.name",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            90
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/mcp/deprecated/registry-deprecated.yaml#L13"
+        },
+        {
+          "key": "mcp.session.id",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            94
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/mcp/deprecated/registry-deprecated.yaml#L151"
+        },
+        {
+          "key": "gen_ai.tool.name",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            98
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/gen-ai/deprecated/registry-deprecated.yaml#L736"
+        },
+        {
+          "key": "gen_ai.tool.call.arguments",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            104
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/gen-ai/deprecated/registry-deprecated.yaml#L792"
+        },
+        {
+          "key": "gen_ai.tool.call.result",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            109
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/gen-ai/deprecated/registry-deprecated.yaml#L817"
+        },
+        {
+          "key": "gen_ai.agent.name",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            115
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/gen-ai/deprecated/registry-deprecated.yaml#L700"
+        },
+        {
+          "key": "gen_ai.agent.version",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            121
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/gen-ai/deprecated/registry-deprecated.yaml#L724"
+        },
+        {
+          "key": "gen_ai.conversation.id",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            127
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/gen-ai/deprecated/registry-deprecated.yaml#L676"
+        }
+      ],
+      "edits": [
+        {
+          "line": 27,
+          "from": "\"db.system\"",
+          "to": "\"db.system.name\""
+        }
+      ]
+    },
+    {
+      "path": "internal/tracegen/worker.go",
+      "findings": [
+        {
+          "key": "peer.service",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            54
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "service.peer.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.39.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/peer/deprecated.yaml#L11"
+        }
+      ],
+      "edits": [
+        {
+          "line": 54,
+          "from": "\"peer.service\"",
+          "to": "\"service.peer.name\""
+        }
+      ]
+    },
+    {
+      "path": "scripts/ai-sidecar/gemini/test_sidecar_workflow.py",
+      "findings": [
+        {
+          "key": "gen_ai.tool.call.arguments",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            314,
+            334
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/gen-ai/deprecated/registry-deprecated.yaml#L792"
+        },
+        {
+          "key": "gen_ai.tool.call.result",
+          "status": "deprecated",
+          "verdict": "MOVED_OUT",
+          "lines": [
+            315,
+            338,
+            362
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "",
+          "replacementReason": "Moved to OpenTelemetry GenAI semantic conventions repository. Not removed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.42.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/gen-ai/deprecated/registry-deprecated.yaml#L817"
+        }
+      ]
+    },
+    {
+      "path": "sdk/python/examples/search.py",
+      "findings": [
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            27
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        }
+      ],
+      "edits": [
+        {
+          "line": 27,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        }
+      ]
+    },
+    {
+      "path": "sdk/python/src/jaeger_query/expression.py",
+      "findings": [
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            11
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        }
+      ],
+      "edits": [
+        {
+          "line": 11,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        }
+      ]
+    },
+    {
+      "path": "sdk/python/src/jaeger_query/query.py",
+      "findings": [
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            14
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        }
+      ],
+      "edits": [
+        {
+          "line": 14,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        }
+      ]
+    },
+    {
+      "path": "sdk/python/tests/test_client.py",
+      "findings": [
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            91,
+            97
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        }
+      ],
+      "edits": [
+        {
+          "line": 91,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 97,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        }
+      ]
+    },
+    {
+      "path": "sdk/python/tests/test_conformance.py",
+      "findings": [
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            35,
+            36,
+            56,
+            141
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        }
+      ],
+      "edits": [
+        {
+          "line": 35,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 36,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 56,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 141,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        }
+      ]
+    },
+    {
+      "path": "sdk/python/tests/test_e2e.py",
+      "findings": [
+        {
+          "key": "deployment.environment",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            64,
+            166
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "deployment.environment.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.27.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/deployment/deprecated/registry-deprecated.yaml#L7"
+        },
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            79,
+            164,
+            165,
+            192,
+            205,
+            209,
+            226
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        },
+        {
+          "key": "http.method",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            80,
+            170,
+            175,
+            177,
+            178
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.request.method",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L7"
+        }
+      ],
+      "edits": [
+        {
+          "line": 64,
+          "from": "\"deployment.environment\"",
+          "to": "\"deployment.environment.name\""
+        },
+        {
+          "line": 166,
+          "from": "\"deployment.environment\"",
+          "to": "\"deployment.environment.name\""
+        },
+        {
+          "line": 79,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 164,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 165,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 192,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 205,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 209,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 226,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 80,
+          "from": "\"http.method\"",
+          "to": "\"http.request.method\""
+        },
+        {
+          "line": 170,
+          "from": "\"http.method\"",
+          "to": "\"http.request.method\""
+        },
+        {
+          "line": 175,
+          "from": "\"http.method\"",
+          "to": "\"http.request.method\""
+        },
+        {
+          "line": 177,
+          "from": "\"http.method\"",
+          "to": "\"http.request.method\""
+        },
+        {
+          "line": 178,
+          "from": "\"http.method\"",
+          "to": "\"http.request.method\""
+        }
+      ]
+    },
+    {
+      "path": "sdk/python/tests/test_expression.py",
+      "findings": [
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            35,
+            38,
+            45,
+            47,
+            49,
+            49,
+            53,
+            70,
+            368,
+            368
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        }
+      ],
+      "edits": [
+        {
+          "line": 35,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 38,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 45,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 47,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 49,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 49,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 53,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 70,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 368,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 368,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        }
+      ]
+    },
+    {
+      "path": "sdk/python/tests/test_query.py",
+      "findings": [
+        {
+          "key": "http.status_code",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            75,
+            86,
+            95,
+            180,
+            185,
+            190,
+            192
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "http.response.status_code",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.21.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/http/deprecated/registry-deprecated.yaml#L15"
+        }
+      ],
+      "edits": [
+        {
+          "line": 75,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 86,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 95,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 180,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 185,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 190,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        },
+        {
+          "line": 192,
+          "from": "\"http.status_code\"",
+          "to": "\"http.response.status_code\""
+        }
+      ]
+    }
+  ]
+}

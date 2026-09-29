@@ -1,0 +1,314 @@
+{
+  "specRelease": "v1.44.0",
+  "filesWalked": 56,
+  "filesScanned": 8,
+  "deprecatedUsages": 18,
+  "deprecatedInComments": 1,
+  "byVerdict": {
+    "CONDITIONAL": 1,
+    "MERGED_INTO": 2,
+    "RENAMED": 15
+  },
+  "byKey": {
+    "code.filepath": 1,
+    "code.function": 2,
+    "code.lineno": 1,
+    "db.name": 2,
+    "db.sql.table": 1,
+    "db.statement": 2,
+    "db.system": 9
+  },
+  "files": [
+    {
+      "path": "otelgorm/option.go",
+      "findings": [
+        {
+          "key": "db.name",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            28
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "db.namespace",
+          "replacementReason": "The registry says renamed to db.namespace, but the migration guide says: \"Removed, integrated into new `db.namespace`. Capture value as-is; no case normalization.\". Check the value before swapping the key.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L91"
+        }
+      ]
+    },
+    {
+      "path": "otelgorm/otelgorm.go",
+      "findings": [
+        {
+          "key": "db.statement",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            143
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "db.query.text",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "client",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L43"
+        },
+        {
+          "key": "db.sql.table",
+          "status": "deprecated",
+          "verdict": "CONDITIONAL",
+          "lines": [
+            145
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "",
+          "replacementReason": "Replaced by `db.collection.name`, but only if not extracting the value from `db.query.text`.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "client",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L75"
+        },
+        {
+          "key": "db.system",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            181,
+            183,
+            185,
+            187,
+            189,
+            191
+          ],
+          "forms": [
+            "enum-constant",
+            "constant"
+          ],
+          "replacement": "db.system.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L370"
+        }
+      ]
+    },
+    {
+      "path": "otellogrus/otellogrus.go",
+      "findings": [
+        {
+          "key": "code.function",
+          "status": "deprecated",
+          "verdict": "MERGED_INTO",
+          "lines": [
+            68
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "code.function.name",
+          "replacementReason": "Fold this value into the named attribute; it is not a plain rename.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/code/registry-deprecated.yaml#L8"
+        }
+      ]
+    },
+    {
+      "path": "otelsql/example/main.go",
+      "findings": [
+        {
+          "key": "db.system",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            21
+          ],
+          "forms": [
+            "enum-constant"
+          ],
+          "replacement": "db.system.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L370"
+        }
+      ]
+    },
+    {
+      "path": "otelsql/otel.go",
+      "findings": [
+        {
+          "key": "db.statement",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            97
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "db.query.text",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "client",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L43"
+        },
+        {
+          "key": "db.system",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            145
+          ],
+          "forms": [
+            "comment"
+          ],
+          "replacement": "db.system.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "client",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L370"
+        },
+        {
+          "key": "db.system",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            148
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "db.system.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "client",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L370"
+        },
+        {
+          "key": "db.name",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            155
+          ],
+          "forms": [
+            "constant"
+          ],
+          "replacement": "db.namespace",
+          "replacementReason": "The registry says renamed to db.namespace, but the migration guide says: \"Removed, integrated into new `db.namespace`. Capture value as-is; no case normalization.\". Check the value before swapping the key.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "client",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L91"
+        }
+      ]
+    },
+    {
+      "path": "otelsqlx/example/main.go",
+      "findings": [
+        {
+          "key": "db.system",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            22
+          ],
+          "forms": [
+            "enum-constant"
+          ],
+          "replacement": "db.system.name",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L370"
+        }
+      ]
+    },
+    {
+      "path": "otelzap/otelzap.go",
+      "findings": [
+        {
+          "key": "code.function",
+          "status": "deprecated",
+          "verdict": "MERGED_INTO",
+          "lines": [
+            177
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "code.function.name",
+          "replacementReason": "Fold this value into the named attribute; it is not a plain rename.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/code/registry-deprecated.yaml#L8"
+        },
+        {
+          "key": "code.filepath",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            180
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "code.file.path",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.31.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/code/registry-deprecated.yaml#L19"
+        },
+        {
+          "key": "code.lineno",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            181
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "code.line.number",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.30.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/code/registry-deprecated.yaml#L28"
+        }
+      ],
+      "edits": [
+        {
+          "line": 180,
+          "from": "\"code.filepath\"",
+          "to": "\"code.file.path\""
+        },
+        {
+          "line": 181,
+          "from": "\"code.lineno\"",
+          "to": "\"code.line.number\""
+        }
+      ]
+    }
+  ]
+}
