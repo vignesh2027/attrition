@@ -88,6 +88,17 @@ async function keyIndex(trace: TraceEntry[]) {
   return cachedIndex.index
 }
 
+// Attribute keys named in plain prose, for example a chat question.
+export async function analyzeKeys(text: string, trace: TraceEntry[]): Promise<string[]> {
+  const index = await keyIndex(trace)
+  const found = new Set<string>()
+  for (const m of text.matchAll(/[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+/g)) {
+    const k = m[0].replace(/\.$/, '')
+    if (index.byKey.has(k)) found.add(k)
+  }
+  return [...found].slice(0, 12)
+}
+
 const cmpVersion = (a: string, b: string) => {
   const pa = a.replace(/^v/, '').split('.').map(Number)
   const pb = b.replace(/^v/, '').split('.').map(Number)

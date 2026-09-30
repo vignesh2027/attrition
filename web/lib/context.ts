@@ -5,7 +5,7 @@ import 'server-only'
 export type TraceEntry = {tool: string; query?: string; ms: number; resultCount?: number}
 
 export const MCP_URL =
-  process.env.SANITY_CONTEXT_MCP_URL ?? 'https://api.sanity.io/v2026-03-03/context/mcp/y9raau23/production/semconv-sentinel'
+  process.env.SANITY_CONTEXT_MCP_URL ?? 'https://api.sanity.io/v2026-03-03/context/mcp/y9raau23/production/attrition'
 
 function token() {
   const t = process.env.SANITY_API_READ_TOKEN
@@ -53,6 +53,13 @@ export async function kbRead(paths: string[], trace: TraceEntry[]): Promise<stri
   const text = await callTool('knowledge_base_read', {knowledgeBase: KB_ID, paths}, KB_MCP_URL, orgToken)
   trace.push({tool: 'knowledge_base_read', query: paths.join(', '), ms: Date.now() - started, resultCount: paths.length})
   return text
+}
+
+// The Knowledge Base outline, for the chat agent's system prompt.
+export async function kbInitialContext(): Promise<string> {
+  const orgToken = process.env.SANITY_ORGANIZATION_TOKEN
+  if (!KB_MCP_URL || !orgToken) return ''
+  return callTool('initial_context', {}, KB_MCP_URL, orgToken).catch(() => '')
 }
 
 // GROQ has no bind parameters through the MCP tool, so literal values are

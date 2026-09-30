@@ -25,7 +25,7 @@ export function Chat({code}: {code: string}) {
     <section className="panel chat">
       <div className="panel-head">
         <span>Ask the agent</span>
-        <span className="muted">tools: Sanity Context groq_query, schema_explorer, Knowledge Base, scan_code</span>
+        <span className="muted">answers from Sanity Context: the attribute dataset and the migration guide Knowledge Base</span>
       </div>
       <div className="chat-log">
         {messages.length === 0 && (
@@ -52,6 +52,23 @@ export function Chat({code}: {code: string}) {
                   <div key={i} className="md">
                     <ReactMarkdown>{p.text}</ReactMarkdown>
                   </div>
+                )
+              }
+              if (p.type === 'data-trace') {
+                const calls = (p as {data: Array<{tool: string; query?: string; ms: number; resultCount?: number}>}).data
+                return (
+                  <details key={i} className="toolcalls">
+                    <summary>{calls.length} Sanity Context calls behind this answer</summary>
+                    {calls.map((c, j) => (
+                      <div key={j} className="toolcall">
+                        <span className="tool">{c.tool}</span>
+                        <span className="muted">
+                          {c.ms} ms{c.resultCount !== undefined ? `, ${c.resultCount} docs` : ''}
+                        </span>
+                        {c.query && <code>{c.query.replace(/\s+/g, ' ').slice(0, 140)}</code>}
+                      </div>
+                    ))}
+                  </details>
                 )
               }
               if (p.type.startsWith('tool-') || p.type === 'dynamic-tool') {

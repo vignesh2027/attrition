@@ -1,113 +1,97 @@
 import {createGroq} from '@ai-sdk/groq'
-import {createMCPClient, type MCPClient} from '@ai-sdk/mcp'
-import {convertToModelMessages, stepCountIs, streamText, tool, type UIMessage} from 'ai'
-import {z} from 'zod'
-import {scan} from '@/lib/analyze'
-import {MCP_URL} from '@/lib/context'
+import {convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, streamText, type UIMessage} from 'ai'
+import {retrieve} from '@/lib/retrieve'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-const MAX_STEPS = 8
+const MAX_HISTORY = 6
 
-let initialContext: {text: string; at: number} | null = null
+// Three models, each with its own free-tier budget of about 8,000 tokens a
+// minute. The route picks whichever has spent the least in the last minute.
+const MODELS = (process.env.GROQ_MODELS ?? 'openai/gpt-oss-120b,openai/gpt-oss-20b,qwen/qwen3.8-27b').split(',')
+const spent = new Map<string, Array<{at: number; tokens: number}>>()
 
-async function fetchInitialContext() {
-  if (initialContext && Date.now() - initialContext.at < 10 * 60_000) return initialContext.text
-  const url = new URL(MCP_URL)
-  url.pathname = `${url.pathname.replace(/\/$/, '')}/initial-context`
-  const res = await fetch(url, {headers: {Authorization: `Bearer ${process.env.SANITY_API_READ_TOKEN}`}})
-  if (!res.ok) return ''
-  initialContext = {text: await res.text(), at: Date.now()}
-  return initialContext.text
+function pickModel() {
+  const now = Date.now()
+  let best = MODELS[0]
+  let bestUse = Infinity
+  for (const m of MODELS) {
+    const recent = (spent.get(m) ?? []).filter((e) => now - e.at < 60_000)
+    spent.set(m, recent)
+    const use = recent.reduce((a, e) => a + e.tokens, 0)
+    if (use < bestUse) {
+      best = m
+      bestUse = use
+    }
+  }
+  return best
 }
 
 const SYSTEM = `
-You are Semconv Sentinel. You help engineers find OpenTelemetry attribute names that the semantic conventions have deprecated, and tell them exactly what to use instead.
+You are Attrition, an agent for OpenTelemetry semantic conventions. You tell engineers which attribute names the spec has retired and exactly what to use instead.
+
+Answer only from the EVIDENCE block. It was fetched for this question from Sanity:
+- "attributes" and "namespaces" come from the attribute dataset through Sanity Context groq_query. They are the only source for verdicts, replacement keys and release numbers.
+- "guideRows" come from the official migration guides in the Sanity Knowledge Base through knowledge_base_read. Use them for behaviour changes, privacy notes, and OTEL_SEMCONV_STABILITY_OPT_IN values.
+- "scan" is present when the user pasted code.
 
 Rules:
-- Answer only from the Sanity dataset (groq_query) and, when available, the Knowledge Base tools. If the data does not say it, say you do not know.
-- When the user pastes code, call scan_code first. It extracts every attribute and reads each verdict from Sanity. Then explain the findings.
-- Never invent a replacement key. Use deprecation.replacements exactly as stored.
-- For SPAN_KIND_DEPENDENT attributes, the answer depends on client vs server. If the span kind is unknown, ask.
-- Link every attribute you discuss to its source.url (the exact spec YAML line).
-- Be brief. Use short paragraphs and small tables. Do not use em dashes.
+- Never invent a key, a release number, a step or a timeline that is not in the evidence. If the evidence does not answer the question, say so and suggest a more specific question.
+- SPAN_KIND_DEPENDENT: replacements[].when says "client spans" or "server spans". If the user did not say which, give both and ask.
+- Cite the dataset (src links, or "Sanity dataset") for verdicts and releases, and the Knowledge Base entry path (for example migration/guides/http) for guide text. Do not attribute dataset facts to a guide.
+- Cite inline in plain parentheses, for example (Sanity dataset) or (migration/guides/http).
+- Start with the direct answer. Then a small table if it helps. Keep it short.
+- Never use em dashes or en dashes. Use commas, colons or parentheses.
 `.trim()
+
+function lastUserText(messages: UIMessage[]) {
+  const last = [...messages].reverse().find((m) => m.role === 'user')
+  return last?.parts.map((p) => (p.type === 'text' ? p.text : '')).join('\n') ?? ''
+}
 
 export async function POST(req: Request) {
   const {messages}: {messages: UIMessage[]} = await req.json()
-
   if (!process.env.GROQ_API_KEY) {
     return Response.json({error: 'The chat agent needs GROQ_API_KEY. Scanning still works without it.'}, {status: 503})
   }
 
-  const clients: MCPClient[] = []
-  const closeAll = async () => {
-    await Promise.all(clients.map((c) => c.close().catch(() => {})))
-  }
+  const question = lastUserText(messages)
+  const stream = createUIMessageStream({
+    originalMessages: messages,
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : String(err)
+      return /rate_limit|tokens per minute|TPM|429/i.test(msg)
+        ? 'The free model tier is busy. Wait a minute and ask again. The scanner above does not use the model and keeps working.'
+        : 'The agent hit an error. The scanner above still works.'
+    },
+    execute: async ({writer}) => {
+      const evidence = await retrieve(question)
+      // Shown in the UI as the list of Sanity Context calls behind the answer.
+      writer.write({type: 'data-trace', data: evidence.trace})
 
-  try {
-    const dataset = await createMCPClient({
-      transport: {type: 'http', url: MCP_URL, headers: {Authorization: `Bearer ${process.env.SANITY_API_READ_TOKEN}`}},
-    })
-    clients.push(dataset)
-    const {initial_context: _skip, ...datasetTools} = await dataset.tools()
-
-    // Knowledge Base endpoint (organization level), when configured.
-    let kbTools = {}
-    if (process.env.SANITY_KB_MCP_URL && process.env.SANITY_ORGANIZATION_TOKEN) {
-      const kb = await createMCPClient({
-        transport: {
-          type: 'http',
-          url: process.env.SANITY_KB_MCP_URL,
-          headers: {Authorization: `Bearer ${process.env.SANITY_ORGANIZATION_TOKEN}`},
+      const {trace: _trace, ...forModel} = evidence
+      const model = pickModel()
+      const groq = createGroq({apiKey: process.env.GROQ_API_KEY})
+      const result = streamText({
+        model: groq(model),
+        instructions: `${SYSTEM}\n\nEVIDENCE\n${JSON.stringify(forModel)}`,
+        messages: await convertToModelMessages(messages.slice(-MAX_HISTORY)),
+        onEnd: ({usage}) => {
+          const tokens = (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0)
+          spent.set(model, [...(spent.get(model) ?? []), {at: Date.now(), tokens: tokens || 3000}])
         },
       })
-      clients.push(kb)
-      kbTools = Object.fromEntries(Object.entries(await kb.tools()).map(([name, t]) => [`kb_${name}`, t]))
-    }
-
-    const groq = createGroq({apiKey: process.env.GROQ_API_KEY})
-    const context = await fetchInitialContext()
-
-    const result = streamText({
-      model: groq(process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b'),
-      instructions: `${SYSTEM}\n\n# Data reference\n\n${context}`,
-      messages: await convertToModelMessages(messages),
-      tools: {
-        ...datasetTools,
-        ...kbTools,
-        scan_code: tool({
-          description:
-            'Scan a code snippet for OpenTelemetry attribute keys and semconv constants. Returns each attribute with its verdict from Sanity, the replacement for the span kind found in the code, and a unified diff for safe string renames.',
-          inputSchema: z.object({code: z.string().describe('The source code to scan, verbatim')}),
-          execute: async ({code}) => {
-            const r = await scan(code)
-            return {
-              specRelease: r.specRelease,
-              pinnedVersion: r.pinnedVersion,
-              summary: r.summary,
-              findings: r.findings.map((f) => ({
-                key: f.key,
-                verdict: f.verdict,
-                lines: f.lines,
-                spanKind: f.spanKind,
-                replacement: f.replacement,
-                why: f.replacementReason,
-                deprecatedIn: f.deprecatedIn,
-                source: f.sourceUrl,
-              })),
-              patch: r.patch,
-            }
-          },
-        }),
-      },
-      stopWhen: stepCountIs(MAX_STEPS),
-      onEnd: closeAll,
-    })
-    return result.toUIMessageStreamResponse({originalMessages: messages})
-  } catch (err) {
-    await closeAll()
-    return Response.json({error: err instanceof Error ? err.message : 'Chat failed'}, {status: 500})
-  }
+      // Belt and braces for the house style: the model is told not to use
+      // em or en dashes, and any that slip through are replaced here.
+      const noDashes = new TransformStream({
+        transform(chunk: {type: string; delta?: string}, controller) {
+          if (chunk.type === 'text-delta' && chunk.delta) chunk = {...chunk, delta: chunk.delta.replace(/[\u2013\u2014]/g, '-').replace(/\u3010/g, ' (').replace(/\u3011/g, ')')}
+          controller.enqueue(chunk)
+        },
+      })
+      writer.merge(result.toUIMessageStream({sendStart: false}).pipeThrough(noDashes))
+    },
+  })
+  return createUIMessageStreamResponse({stream})
 }
