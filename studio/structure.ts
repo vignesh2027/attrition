@@ -4,7 +4,7 @@ import {VERDICTS} from './schemaTypes/attribute'
 
 export const structure: StructureResolver = (S) =>
   S.list()
-    .title('Semconv Sentinel')
+    .title('Attrition')
     .items([
       S.listItem()
         .title('Deprecated, by verdict')

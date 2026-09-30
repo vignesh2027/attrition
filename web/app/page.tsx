@@ -1,6 +1,6 @@
-import {Sentinel} from '@/components/Sentinel'
+import {Attrition} from '@/components/Attrition'
 import {samples} from '@/lib/samples'
 
 export default function Page() {
-  return <Sentinel samples={samples()} />
+  return <Attrition samples={samples()} />
 }

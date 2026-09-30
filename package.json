@@ -1,5 +1,5 @@
 {
-  "name": "semconv-sentinel",
+  "name": "attrition",
   "private": true,
   "type": "module",
   "scripts": {

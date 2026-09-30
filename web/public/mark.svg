@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Attrition">
+  <rect width="64" height="64" rx="15" fill="#15213b"/>
+  <rect x="13" y="16" width="38" height="10" rx="5" fill="#7d879c" opacity="0.55"/>
+  <path d="M10 30 L54 13" stroke="#e8ecf4" stroke-width="3.2" stroke-linecap="round"/>
+  <rect x="13" y="38" width="27" height="10" rx="5" fill="#f5a800"/>
+  <path d="M45 37.5 L52 43 L45 48.5" fill="none" stroke="#f5a800" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 WORK="${WORK:-$(mktemp -d)}"
 mkdir -p results
-(cd ../cli && go build -o "$WORK/sentinel" .)
+(cd ../cli && go build -o "$WORK/attrition" .)
 
 grep -v '^#' repos.txt | while read -r repo commit; do
   dir="$WORK/${repo//\//_}"
@@ -13,7 +13,7 @@ grep -v '^#' repos.txt | while read -r repo commit; do
     git clone -q --filter=blob:none "https://github.com/$repo" "$dir"
   fi
   git -C "$dir" checkout -q "$commit"
-  (cd "$dir" && "$WORK/sentinel" -json -workers 6 .) > "results/${repo//\//_}.json"
+  (cd "$dir" && "$WORK/attrition" -json -workers 6 .) > "results/${repo//\//_}.json"
   echo "scanned $repo@$commit"
 done
 python3 summarize.py > RESULTS.md

@@ -1,7 +1,7 @@
 # Knowledge Base: OpenTelemetry semconv migrations
 
 Knowledge Base `kbI5ncVyqDpc` in Sanity organization `oc2g3x7ee`, served through the
-organization Context MCP endpoint `semconv-sentinel-kb`.
+organization Context MCP endpoint `attrition-kb`.
 
 It holds 107 source documents, well inside the 150 document beta budget:
 

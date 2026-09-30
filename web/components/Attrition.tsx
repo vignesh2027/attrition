@@ -6,8 +6,8 @@ import type {Sample} from '@/lib/samples'
 import {Chat} from './Chat'
 
 const LINKS = {
-  repo: 'https://github.com/vignesh2027/semconv-sentinel',
-  studio: 'https://semconv-sentinel.sanity.studio',
+  repo: 'https://github.com/vignesh2027/attrition',
+  studio: 'https://attrition.sanity.studio',
   dataset:
     'https://y9raau23.apicdn.sanity.io/v2025-02-19/data/query/production?query=*%5B_type%3D%3D%22attribute%22%26%26status%3D%3D%22deprecated%22%5D%7Bkey%2Cdeprecation%7D%5B0...20%5D',
   spec: 'https://github.com/open-telemetry/semantic-conventions',
@@ -27,7 +27,7 @@ const VERDICT_LABEL: Record<string, string> = {
   CURRENT: 'Current',
 }
 
-export function Sentinel({samples}: {samples: Sample[]}) {
+export function Attrition({samples}: {samples: Sample[]}) {
   const [active, setActive] = useState(samples[0]?.id ?? '')
   const [code, setCode] = useState(samples[0]?.code ?? '')
   const [result, setResult] = useState<ScanResult | null>(null)
@@ -68,8 +68,9 @@ export function Sentinel({samples}: {samples: Sample[]}) {
     <main className="wrap">
       <header className="hero">
         <div className="brand">
-          <span className="dot" aria-hidden />
-          <span>Semconv Sentinel</span>
+          <img src="/mark.svg" alt="" width={34} height={34} />
+          <span>Attrition</span>
+          <span className="brand-sub">OpenTelemetry semantic convention checker</span>
         </div>
         <h1>Find the OpenTelemetry attribute names the spec already retired.</h1>
         <p className="lede">

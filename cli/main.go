@@ -1,15 +1,15 @@
-// Command sentinel scans a source tree for OpenTelemetry attribute names that
+// Command attrition scans a source tree for OpenTelemetry attribute names that
 // the semantic conventions have deprecated.
 //
 // It walks the given paths, keeps only files that mention an attribute-like
-// string or a semconv constant, and sends each one to the Semconv Sentinel
+// string or a semconv constant, and sends each one to the Attrition
 // scan API. That API reads every verdict from the Sanity dataset through
 // Sanity Context, so the CLI and the web app always agree.
 //
-//	sentinel ./services            # report
-//	sentinel -json ./services      # machine-readable report
-//	sentinel -fail ./services      # exit 1 when anything is deprecated (CI)
-//	sentinel -fix ./services       # apply the unambiguous string renames
+//	attrition ./services            # report
+//	attrition -json ./services      # machine-readable report
+//	attrition -fail ./services      # exit 1 when anything is deprecated (CI)
+//	attrition -fix ./services       # apply the unambiguous string renames
 package main
 
 import (
@@ -31,7 +31,7 @@ import (
 	"time"
 )
 
-const defaultAPI = "https://semconv-sentinel.vercel.app/api/scan"
+const defaultAPI = "https://attrition-otel.vercel.app/api/scan"
 
 var sourceExt = map[string]bool{
 	".go": true, ".ts": true, ".tsx": true, ".js": true, ".jsx": true, ".mjs": true, ".cjs": true,
@@ -95,14 +95,14 @@ type report struct {
 }
 
 func main() {
-	api := flag.String("api", envOr("SENTINEL_API", defaultAPI), "scan API endpoint")
+	api := flag.String("api", envOr("ATTRITION_API", defaultAPI), "scan API endpoint")
 	asJSON := flag.Bool("json", false, "print the report as JSON")
 	fail := flag.Bool("fail", false, "exit with status 1 if any deprecated attribute is found")
 	fix := flag.Bool("fix", false, "rewrite string keys that have exactly one unconditional replacement")
 	workers := flag.Int("workers", 4, "concurrent requests")
 	maxBytes := flag.Int64("max-bytes", 80_000, "skip files larger than this")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: sentinel [flags] [path ...]\n\n")
+		fmt.Fprintf(os.Stderr, "usage: attrition [flags] [path ...]\n\n")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -113,7 +113,7 @@ func main() {
 
 	files, walked, err := collect(roots, *maxBytes)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "sentinel:", err)
+		fmt.Fprintln(os.Stderr, "attrition:", err)
 		os.Exit(2)
 	}
 
@@ -123,10 +123,10 @@ func main() {
 	if *fix {
 		applied, err := applyEdits(rep.Files)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "sentinel: fix:", err)
+			fmt.Fprintln(os.Stderr, "attrition: fix:", err)
 			os.Exit(2)
 		}
-		fmt.Fprintf(os.Stderr, "sentinel: rewrote %d lines\n", applied)
+		fmt.Fprintf(os.Stderr, "attrition: rewrote %d lines\n", applied)
 	}
 
 	if *asJSON {
@@ -302,7 +302,7 @@ func applyEdits(files []fileReport) (int, error) {
 }
 
 func printText(w io.Writer, rep report) {
-	fmt.Fprintf(w, "Semconv Sentinel, spec %s\n", rep.SpecRelease)
+	fmt.Fprintf(w, "Attrition, spec %s\n", rep.SpecRelease)
 	fmt.Fprintf(w, "%d source files walked, %d mention attributes, %d deprecated usages in code, %d in comments\n\n", rep.FilesWalked, rep.FilesScanned, rep.Deprecated, rep.InComments)
 	tw := tabwriter.NewWriter(w, 0, 2, 2, ' ', 0)
 	for _, fr := range rep.Files {

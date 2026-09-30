@@ -7,7 +7,7 @@ import {structure} from './structure'
 
 export default defineConfig({
   name: 'default',
-  title: 'Semconv Sentinel',
+  title: 'Attrition',
   projectId: 'y9raau23',
   dataset: 'production',
   plugins: [structureTool({structure}), visionTool(), contextPlugin()],

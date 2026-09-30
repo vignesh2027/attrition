@@ -80,13 +80,29 @@ code {
 
 .brand {
   display: inline-flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.brand img {
+  border-radius: 8px;
+}
+
+.brand-sub {
   font-size: 13px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 500;
   color: var(--muted);
+  letter-spacing: 0;
+}
+
+@media (max-width: 600px) {
+  .brand-sub {
+    display: none;
+  }
 }
 
 .dot {
@@ -642,4 +658,14 @@ button.ghost {
   .kb {
     color: #84caff;
   }
+}
+
+.toolcalls {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.toolcalls summary {
+  cursor: pointer;
+  color: var(--muted);
 }

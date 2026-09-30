@@ -1,18 +1,18 @@
-# Semconv Sentinel
+# Attrition
 
 **Find the OpenTelemetry attribute names the spec already retired.**
 
-Paste instrumentation code. Semconv Sentinel finds every attribute key and SDK constant in it, checks each one against all 940 attributes of the OpenTelemetry semantic conventions, and tells you what to use instead, for your span kind, with the release that deprecated it and the exact spec line that says so. It then writes a patch for the renames that are safe to automate and leaves the rest for a person.
+Paste instrumentation code. Attrition finds every attribute key and SDK constant in it, checks each one against all 940 attributes of the OpenTelemetry semantic conventions, and tells you what to use instead, for your span kind, with the release that deprecated it and the exact spec line that says so. It then writes a patch for the renames that are safe to automate and leaves the rest for a person.
 
 | | |
 | --- | --- |
-| Live app | https://semconv-sentinel.vercel.app (no login) |
-| Project page | https://vignesh2027.github.io/semconv-sentinel |
+| Live app | https://attrition-otel.vercel.app (no login) |
+| Project page | https://vignesh2027.github.io/attrition |
 | Sanity project ID | `y9raau23`, dataset `production` (public) |
 | Public dataset query | [deprecated attributes as JSON](https://y9raau23.apicdn.sanity.io/v2025-02-19/data/query/production?query=*%5B_type%3D%3D%22attribute%22%26%26status%3D%3D%22deprecated%22%5D%7Bkey%2Cdeprecation%7D) |
-| Sanity Studio | https://semconv-sentinel.sanity.studio |
-| Context MCP (dataset) | `https://api.sanity.io/v2026-03-03/context/mcp/y9raau23/production/semconv-sentinel` |
-| Context MCP (Knowledge Base) | `https://api.sanity.io/v1/context/organizations/oc2g3x7ee/mcp/semconv-sentinel-kb` |
+| Sanity Studio | https://attrition.sanity.studio |
+| Context MCP (dataset) | `https://api.sanity.io/v2026-03-03/context/mcp/y9raau23/production/attrition` |
+| Context MCP (Knowledge Base) | `https://api.sanity.io/v1/context/organizations/oc2g3x7ee/mcp/attrition-kb` |
 
 ![Scan of a TypeScript checkout service](docs/img/node-light.png)
 
@@ -114,11 +114,11 @@ A finding means the key is deprecated in the spec. Test fixtures that read old d
 ## Use the CLI
 
 ```sh
-cd cli && go build -o sentinel .
-./sentinel ~/code/my-service              # report
-./sentinel -fail ~/code/my-service        # exit 1 on any deprecated usage (CI)
-./sentinel -fix ~/code/my-service         # apply only the unambiguous string renames
-./sentinel -json ~/code/my-service        # machine-readable
+cd cli && go build -o attrition .
+./attrition ~/code/my-service              # report
+./attrition -fail ~/code/my-service        # exit 1 on any deprecated usage (CI)
+./attrition -fix ~/code/my-service         # apply only the unambiguous string renames
+./attrition -json ~/code/my-service        # machine-readable
 ```
 
 ## Run it yourself

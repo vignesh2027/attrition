@@ -1,6 +1,6 @@
 // Creates or updates the Agent Context document that configures the
 // project-level Context MCP endpoint:
-//   https://api.sanity.io/v2026-03-03/context/mcp/y9raau23/production/semconv-sentinel
+//   https://api.sanity.io/v2026-03-03/context/mcp/y9raau23/production/attrition
 // Uses the CLI login token, so run `npx sanity login` first.
 import {readFileSync} from 'node:fs'
 import {homedir} from 'node:os'
@@ -38,11 +38,11 @@ Always cite source.url, which links to the exact line of the spec YAML at that r
 `.trim()
 
 const doc = {
-  _id: 'agent-context-semconv-sentinel',
+  _id: 'agent-context-attrition',
   _type: 'sanity.agentContext',
   version: '1',
-  name: 'Semconv Sentinel',
-  slug: {_type: 'slug', current: 'semconv-sentinel'},
+  name: 'Attrition',
+  slug: {_type: 'slug', current: 'attrition'},
   groqFilter: '_type in ["attribute", "namespace", "specRelease"]',
   instructions,
 }
