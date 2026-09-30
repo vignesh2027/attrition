@@ -1,0 +1,108 @@
+"""Attrition from the terminal: a small tool-calling agent in plain Python.
+
+The web app uses the Vercel AI SDK. This file shows the same Sanity Context
+endpoints work from any stack: it connects to both MCP servers with the
+official Python MCP SDK, hands their tools to a model over the OpenAI
+compatible API, and runs the tool loop itself.
+
+    python ask.py "What replaced net.peer.name on a server span?"
+    python ask.py --verbose "How do I dual-emit database attributes?"
+
+Needs SANITY_API_READ_TOKEN, GROQ_API_KEY and, for the Knowledge Base,
+SANITY_ORGANIZATION_TOKEN in the environment or in ../.env.
+"""
+
+import argparse
+import asyncio
+import json
+import os
+import pathlib
+import sys
+from contextlib import AsyncExitStack
+
+from dotenv import load_dotenv
+from mcp.client.session import ClientSession
+from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
+from openai import OpenAI
+
+load_dotenv(pathlib.Path(__file__).resolve().parent.parent / ".env")
+
+DATASET_MCP = os.getenv(
+    "SANITY_CONTEXT_MCP_URL", "https://api.sanity.io/v2026-03-03/context/mcp/y9raau23/production/attrition"
+)
+KB_MCP = os.getenv("SANITY_KB_MCP_URL", "https://api.sanity.io/v1/context/organizations/oc2g3x7ee/mcp/attrition-kb")
+KB_ID = os.getenv("SANITY_KB_ID", "kbI5ncVyqDpc")
+MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+MAX_STEPS = 5
+MAX_TOOL_CHARS = 3500
+
+SYSTEM = f"""You answer questions about OpenTelemetry semantic convention attributes.
+Verdicts and replacement keys come only from groq_query on the Sanity dataset:
+attribute{{key, status, stability, "src": source.url, deprecation{{verdict, deprecatedIn, note, replacements[]{{key, when}}}}}}.
+Migration guidance comes from the Knowledge Base {KB_ID}: knowledge_base_search, then knowledge_base_read
+(paths such as migration/guides/http, migration/guides/database).
+Never invent a key or a release. SPAN_KIND_DEPENDENT answers depend on client vs server spans.
+Be brief. Cite (Sanity dataset) or the Knowledge Base path. Never use em dashes or en dashes."""
+
+# The only tools the model gets, with short descriptions to save tokens.
+KEEP = {
+    "groq_query": "Run a GROQ query on the OpenTelemetry attribute dataset. Always project fields.",
+    "knowledge_base_search": "Keyword search the migration guide Knowledge Base. Returns entry paths.",
+    "knowledge_base_read": "Read Knowledge Base entries by path.",
+}
+
+
+async def connect(stack: AsyncExitStack, url: str, token: str) -> ClientSession:
+    http = await stack.enter_async_context(create_mcp_http_client(headers={"Authorization": f"Bearer {token}"}))
+    streams = await stack.enter_async_context(streamable_http_client(url, http_client=http))
+    session = await stack.enter_async_context(ClientSession(streams[0], streams[1]))
+    await session.initialize()
+    return session
+
+
+async def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("question")
+    parser.add_argument("--verbose", action="store_true", help="print each tool call")
+    args = parser.parse_args()
+
+    async with AsyncExitStack() as stack:
+        sessions: dict[str, ClientSession] = {}
+        tools = []
+        endpoints = [(DATASET_MCP, os.environ["SANITY_API_READ_TOKEN"])]
+        if os.getenv("SANITY_ORGANIZATION_TOKEN"):
+            endpoints.append((KB_MCP, os.environ["SANITY_ORGANIZATION_TOKEN"]))
+        for url, token in endpoints:
+            session = await connect(stack, url, token)
+            for t in (await session.list_tools()).tools:
+                if t.name in KEEP:
+                    sessions[t.name] = session
+                    tools.append(
+                        {
+                            "type": "function",
+                            "function": {"name": t.name, "description": KEEP[t.name], "parameters": t.input_schema},
+                        }
+                    )
+
+        client = OpenAI(api_key=os.environ["GROQ_API_KEY"], base_url="https://api.groq.com/openai/v1")
+        messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": args.question}]
+
+        for _ in range(MAX_STEPS):
+            reply = client.chat.completions.create(model=MODEL, messages=messages, tools=tools).choices[0].message
+            if not reply.tool_calls:
+                print(reply.content.replace("—", "-").replace("–", "-"))
+                return 0
+            messages.append(reply.model_dump(exclude_none=True))
+            for call in reply.tool_calls:
+                call_args = json.loads(call.function.arguments or "{}")
+                if args.verbose:
+                    print(f"[{call.function.name}] {json.dumps(call_args)[:160]}", file=sys.stderr)
+                result = await sessions[call.function.name].call_tool(call.function.name, call_args)
+                text = "\n".join(getattr(c, "text", "") for c in result.content)[:MAX_TOOL_CHARS]
+                messages.append({"role": "tool", "tool_call_id": call.id, "content": text})
+        print("Stopped after the step limit without a final answer.", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(asyncio.run(main()))
