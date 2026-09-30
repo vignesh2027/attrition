@@ -16,13 +16,22 @@ export type Guidance = {
   disagreesWithRegistry?: boolean
 }
 
-export const GUIDE_FOR_NAMESPACE: Record<string, string> = {
-  http: 'migration/guides/http',
-  net: 'migration/guides/http',
-  url: 'migration/guides/http',
-  db: 'migration/guides/database',
-  rpc: 'migration/guides/rpc',
-  code: 'migration/guides/code',
+// Knowledge Base builds choose their own entry paths, so the guide for a
+// namespace is found by keyword in the outline rather than hard-coded.
+const GUIDE_KEYWORDS: Record<string, string[]> = {
+  http: ['http'],
+  net: ['http'],
+  url: ['http'],
+  db: ['database', 'db'],
+  rpc: ['rpc'],
+  code: ['code'],
+}
+
+export function guideFor(namespace: string, paths: string[]): string | undefined {
+  const words = GUIDE_KEYWORDS[namespace]
+  if (!words) return undefined
+  const guides = paths.filter((p) => p.startsWith('migration'))
+  return guides.find((p) => words.some((w) => p.split('/').pop() === w)) ?? guides.find((p) => words.some((w) => p.includes(w)))
 }
 
 const cells = (row: string) =>
@@ -42,6 +51,11 @@ export function guidanceFor(key: string, entry: string, text: string): Guidance 
     const [change, ...rest] = cells(line)
     // Only rows where the key is the subject of the change, not a mention in a comment.
     if (!change.startsWith(needle)) continue
+    // Two table layouts occur: "old -> new | comment" and "old | new | comment".
+    if (!change.includes('→') && rest.length >= 2 && /^`[^`]+`(\s*(,|and|or)\s*`[^`]+`)*$/.test(rest[0])) {
+      const comment = rest.slice(1).join(' ').trim()
+      return {entry, section, change: `${key} → ${rest[0].replace(/`/g, '')}`, comment: comment || null}
+    }
     const comment = rest.join(' ').trim()
     return {entry, section, change: change.replace(/`/g, ''), comment: comment || null}
   }

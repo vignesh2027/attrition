@@ -55,6 +55,22 @@ export async function kbRead(paths: string[], trace: TraceEntry[]): Promise<stri
   return text
 }
 
+let outlineCache: {paths: string[]; at: number} | null = null
+
+// Entry paths from the Knowledge Base outline, cached for ten minutes.
+export async function kbPaths(trace?: TraceEntry[]): Promise<string[]> {
+  if (outlineCache && Date.now() - outlineCache.at < 10 * 60_000) return outlineCache.paths
+  const started = Date.now()
+  const text = await kbInitialContext()
+  const paths = text
+    .split('\n')
+    .map((l) => l.trim().split(/\s/)[0])
+    .filter((p) => /^[a-z_]+(\/[a-z0-9_]+)+$/.test(p))
+  trace?.push({tool: 'initial_context', query: 'Knowledge Base outline', ms: Date.now() - started, resultCount: paths.length})
+  if (paths.length) outlineCache = {paths, at: Date.now()}
+  return paths
+}
+
 // The Knowledge Base outline, for the chat agent's system prompt.
 export async function kbInitialContext(): Promise<string> {
   const orgToken = process.env.SANITY_ORGANIZATION_TOKEN

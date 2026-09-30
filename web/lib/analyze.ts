@@ -3,8 +3,8 @@
 // dependent attributes is chosen from the span kind found in the code, and
 // left open when the code does not state one.
 import 'server-only'
-import {groq, groqString, kbRead, type TraceEntry} from './context'
-import {GUIDE_FOR_NAMESPACE, guidanceFor, optInHint, type Guidance} from './guidance'
+import {groq, groqString, kbPaths, kbRead, type TraceEntry} from './context'
+import {guideFor, guidanceFor, optInHint, type Guidance} from './guidance'
 import {buildIndex, extract, type KeyIndex, type SpanKind, type Usage} from './extract'
 import {buildPatch, type Edit} from './patch'
 
@@ -223,7 +223,10 @@ export async function scan(code: string): Promise<ScanResult> {
 
   // Knowledge Base: add what the official migration guide says about each key.
   const migrationGuides: ScanResult['migrationGuides'] = []
-  const entries = [...new Set(findings.filter((f) => f.status === 'deprecated').map((f) => GUIDE_FOR_NAMESPACE[f.key.split('.')[0]]).filter(Boolean))]
+  const deprecatedFindings = findings.filter((f) => f.status === 'deprecated')
+  const paths = deprecatedFindings.length ? await kbPaths(trace).catch(() => []) : []
+  const guideOf = (key: string) => guideFor(key.split('.')[0], paths)
+  const entries = [...new Set(deprecatedFindings.map((f) => guideOf(f.key)).filter((e): e is string => Boolean(e)))]
   await Promise.all(
     entries.map(async (entry) => {
       try {
@@ -231,7 +234,7 @@ export async function scan(code: string): Promise<ScanResult> {
         if (!text) return
         migrationGuides.push({entry, optIn: optInHint(text)})
         for (const f of findings) {
-          if (GUIDE_FOR_NAMESPACE[f.key.split('.')[0]] !== entry) continue
+          if (guideOf(f.key) !== entry) continue
           const g = guidanceFor(f.key, entry, text)
           // The guide files some renames under one span kind only. Say so when
           // this usage sits on the other kind, where the registry answer differs.

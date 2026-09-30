@@ -9,8 +9,8 @@
 // means the agent never has to guess which document to open.
 import 'server-only'
 import {analyzeKeys, scan} from './analyze'
-import {groq, groqString, kbRead, type TraceEntry} from './context'
-import {GUIDE_FOR_NAMESPACE} from './guidance'
+import {groq, groqString, kbPaths, kbRead, type TraceEntry} from './context'
+import {guideFor} from './guidance'
 
 const NAMESPACE_WORDS: Array<[RegExp, string]> = [
   [/\b(database|db|sql|query|queries)\b/i, 'db'],
@@ -89,7 +89,8 @@ export async function retrieve(question: string): Promise<Evidence> {
   }
 
   const guideNamespaces = new Set([...keys.map((k) => k.split('.')[0]), ...namespaces])
-  const entries = [...new Set([...guideNamespaces].map((ns) => GUIDE_FOR_NAMESPACE[ns]).filter(Boolean))].slice(0, 2)
+  const paths = guideNamespaces.size ? await kbPaths(trace).catch(() => []) : []
+  const entries = [...new Set([...guideNamespaces].map((ns) => guideFor(ns, paths)).filter((e): e is string => Boolean(e)))].slice(0, 2)
   for (const entry of entries) {
     try {
       const text = await kbRead([entry], trace)
