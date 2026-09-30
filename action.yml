@@ -1,0 +1,34 @@
+name: Attrition
+description: Fail a pull request that adds OpenTelemetry attribute names the semantic conventions have retired.
+author: vignesh2027
+branding:
+  icon: alert-triangle
+  color: orange
+inputs:
+  path:
+    description: Files or directories to scan
+    default: .
+  fail:
+    description: Fail the job when a deprecated attribute is used in code
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@v5
+      with:
+        go-version: "1.26"
+        cache: false
+    - name: Scan
+      shell: bash
+      run: |
+        cd "$GITHUB_ACTION_PATH/cli" && go build -o "$RUNNER_TEMP/attrition" .
+        cd "$GITHUB_WORKSPACE"
+        flags=()
+        [[ "${{ inputs.fail }}" == "true" ]] && flags+=(-fail)
+        "$RUNNER_TEMP/attrition" "${flags[@]}" ${{ inputs.path }} | tee "$RUNNER_TEMP/attrition.txt"
+        {
+          echo '### Attrition'
+          echo '```'
+          cat "$RUNNER_TEMP/attrition.txt"
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
