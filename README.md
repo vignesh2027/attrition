@@ -24,7 +24,7 @@ A text search over the docs cannot answer these correctly:
 
 * **`net.peer.name` has two answers.** It is `server.address` on client spans and `client.address` on server spans. The agent reads the span kind from your code and picks one. If the code does not state a span kind, it asks.
 * **Some keys are split, merged or conditional.** `db.sql.table` becomes `db.collection.name` only if the value is not extracted from `db.query.text`. `code.function` is folded into a fully qualified `code.function.name`.
-* **Some are not renames at all.** `event.name` moves to the log record's EventName field. 23 attributes were removed with no replacement.
+* **Some are not renames at all.** `event.name` moves to the log record's EventName field. 21 attributes were removed with no replacement.
 * **The registry and the migration guide can disagree.** The registry says `db.name` was renamed to `db.namespace`. The database migration guide says it was removed and integrated into `db.namespace`. The app surfaces both and keeps that key out of the patch.
 
 Each of those facts is a field in a Sanity document, not a sentence in a page.
@@ -62,14 +62,16 @@ flowchart LR
 | Verdict | Count | Meaning |
 | --- | ---: | --- |
 | `RENAMED` | 97 | One new key, always |
-| `REPLACED` | 16 | One new key; the spec does not call it a rename |
-| `SPAN_KIND_DEPENDENT` | 2 | Different key on client and server spans |
-| `SPLIT` | 3 | Several keys, set together |
-| `CONDITIONAL` | 1 | The note states a condition |
+| `REPLACED` | 15 | One new key; the spec does not call it a rename |
+| `SPAN_KIND_DEPENDENT` | 3 | Different key per span kind, or none for one kind |
+| `SPLIT` | 4 | Several keys, set together |
+| `CONDITIONAL` | 2 | The note states a condition, or the key depends on usage |
 | `MERGED_INTO` | 4 | Fold the value into another key |
 | `USE_SIGNAL_FIELD` | 2 | Use a field of the span or log record |
 | `MOVED_OUT` | 58 | Maintained in another repository now |
-| `REMOVED` | 23 | Delete it |
+| `REMOVED` | 21 | Delete it |
+
+Four replacements also change the value format (a type or a string representation), for example `rpc.grpc.status_code`. Those carry `valueChanges: true` and are never auto-patched.
 
 No attribute is left as `NEEDS_REVIEW`. The counts come from `data/summary.json`.
 
@@ -106,10 +108,34 @@ A finding means the key is deprecated in the spec. Test fixtures that read old d
 | `scripts/` | Fetch the spec releases and build `data/semconv.ndjson` |
 | `studio/` | Sanity Studio, schema, structure, Agent Context document |
 | `kb/` | Knowledge Base sources and the script that rebuilds it |
-| `web/` | Next.js app: scan API, chat agent, UI |
-| `cli/` | Go CLI for local trees and CI |
+| `web/` | Next.js and TypeScript: scan API, chat agent, UI |
+| `cli/` | Go CLI for local trees and CI, also used by the GitHub Action |
+| `rust/` | Rust offline scanner for pre-commit hooks and air-gapped CI |
+| `python/` | Python terminal agent on the same Context MCP endpoints |
+| `action.yml` | GitHub Action |
 | `bench/` | Real repository scan and results |
 | `docs/` | GitHub Pages site and screenshots |
+
+## Four ways to run it
+
+| | Language | Needs network | Best for |
+| --- | --- | --- | --- |
+| [Web app](https://attrition-otel.vercel.app) | TypeScript | yes | Pasting a file, reading the evidence |
+| [`cli/`](cli) | Go | yes (live Sanity Context) | CI and whole repositories, `-fix` |
+| [`rust/`](rust) | Rust | only once, for the snapshot | Pre-commit hooks, air-gapped CI |
+| [`python/`](python) | Python | yes | Asking questions from a terminal, other agent stacks |
+
+### GitHub Action
+
+```yaml
+- uses: actions/checkout@v4
+- uses: vignesh2027/attrition@main
+  with:
+    path: services/
+    fail: "true"
+```
+
+It writes the report to the job summary and fails the job when code uses a retired name.
 
 ## Use the CLI
 

@@ -7,7 +7,9 @@
 <meta name="description" content="Find the OpenTelemetry attribute names the spec already retired. An agent on Sanity Context over all 940 semantic convention attributes.">
 <meta property="og:title" content="Attrition">
 <meta property="og:description" content="Find the OpenTelemetry attribute names the spec already retired.">
-<meta property="og:image" content="https://vignesh2027.github.io/attrition/img/node-light.png">
+<meta property="og:image" content="https://vignesh2027.github.io/attrition/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="mark.svg" type="image/svg+xml">
 <style>
 :root{--bg:#f7f7f4;--panel:#fff;--ink:#16181d;--muted:#5f6571;--line:#e3e3dd;--accent:#f5a800;--navy:#1f2a44;--ok:#1b7f4b;--warn:#b54708;--code:#f0f0ea}
 @media (prefers-color-scheme:dark){:root{--bg:#0f1115;--panel:#161920;--ink:#e8e9ec;--muted:#9097a3;--line:#262a33;--navy:#c9d3ea;--ok:#6fd39c;--warn:#ffb866;--code:#1d2029}}
@@ -16,7 +18,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,ui-sans-
 a{color:inherit;text-decoration-color:var(--accent);text-underline-offset:3px}
 code{font:0.88em ui-monospace,"SF Mono",Menlo,monospace;background:var(--code);padding:1px 5px;border-radius:4px}
 .wrap{max-width:1080px;margin:0 auto;padding:40px 16px 80px}
-.brand{display:inline-flex;gap:8px;align-items:center;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.brand{display:inline-flex;gap:12px;align-items:center;font-size:24px;font-weight:700;letter-spacing:-.01em;color:var(--ink);flex-wrap:wrap}
 .dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
 h1{font-size:clamp(30px,5vw,52px);line-height:1.08;letter-spacing:-.025em;margin:12px 0 16px;max-width:18ch;color:var(--navy)}
 .lede{font-size:18px;color:var(--muted);max-width:62ch}
@@ -43,7 +45,7 @@ footer{margin-top:60px;color:var(--muted);font-size:14px}
 </head>
 <body>
 <main class="wrap">
-  <div class="brand"><span class="dot"></span>Attrition</div>
+  <div class="brand"><img src="mark.svg" alt="" width="40" height="40" style="border-radius:9px">Attrition<span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted);font-size:14px;margin-left:6px">OpenTelemetry semantic convention checker</span></div>
   <h1>Find the OpenTelemetry attribute names the spec already retired.</h1>
   <p class="lede">Paste instrumentation code. Every attribute key and SDK constant is checked against all 940 attributes of the semantic conventions, stored as structured content in Sanity and read through Sanity Context. You get the verdict, the replacement for your span kind, the release that deprecated it, the spec line that says so, and a patch.</p>
   <div class="cta">
