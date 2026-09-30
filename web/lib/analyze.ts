@@ -33,6 +33,7 @@ type AttributeDoc = {
     reason: string
     note?: string
     deprecatedIn?: string
+    valueChanges?: boolean
     movedTo?: {label: string; url: string}
     replacements?: Array<{key: string; when: string; stability?: string}>
   }
@@ -112,6 +113,9 @@ function chooseReplacement(doc: AttributeDoc, spanKind: SpanKind | null) {
   switch (dep.verdict) {
     case 'RENAMED':
     case 'REPLACED':
+      if (dep.valueChanges) {
+        return {replacement: reps[0]?.key ?? null, reason: `The key changes and so does the value format: ${dep.note ?? 'see the spec note'}`, decide: true}
+      }
       return {replacement: reps[0]?.key ?? null, reason: 'The spec names one replacement.', decide: false}
     case 'SPAN_KIND_DEPENDENT': {
       if (!spanKind) {
@@ -151,7 +155,7 @@ export async function scan(code: string): Promise<ScanResult> {
       "attrs": *[_type == "attribute" && key in [${keys.map(groqString).join(', ')}]]{
         _id, key, status, stability, brief, introducedIn,
         "source": source{url, release},
-        deprecation{verdict, reason, note, deprecatedIn, movedTo{label, url},
+        deprecation{verdict, reason, note, deprecatedIn, valueChanges, movedTo{label, url},
           "replacements": replacements[]{key, when, "stability": attribute->stability}}
       }
     }`,

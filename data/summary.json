@@ -6,13 +6,13 @@
   "verdictCounts": {
     "RENAMED": 97,
     "MERGED_INTO": 4,
-    "SPLIT": 3,
-    "REMOVED": 23,
-    "CONDITIONAL": 1,
-    "REPLACED": 16,
+    "SPLIT": 4,
+    "REMOVED": 21,
+    "CONDITIONAL": 2,
+    "REPLACED": 15,
     "USE_SIGNAL_FIELD": 2,
     "MOVED_OUT": 58,
-    "SPAN_KIND_DEPENDENT": 2
+    "SPAN_KIND_DEPENDENT": 3
   },
   "renameChains": 0,
   "namespaces": 90

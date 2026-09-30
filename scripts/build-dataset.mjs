@@ -103,7 +103,7 @@ for (const tag of releases) {
 // Verdicts
 // ---------------------------------------------------------------------------
 const TICKED = /`([a-z][a-z0-9_]*(?:\.[a-z0-9_<>-]+)+)`/g
-const SPAN_KIND = /`([a-z][a-z0-9_.]+)`\s+on\s+(client|server|producer|consumer|internal)\s+spans/gi
+const SPAN_KIND = /`([a-z][a-z0-9_.]+)`\s+on\s+(?:the\s+)?(client|server|producer|consumer|internal)\s+spans/gi
 
 function classify(dep, knownKeys) {
   const note = dep.note ?? ''
@@ -114,7 +114,12 @@ function classify(dep, knownKeys) {
     return {verdict: 'RENAMED', replacements: [{key: dep.renamedTo, when: 'always'}]}
   }
   const bySpanKind = [...note.matchAll(SPAN_KIND)].map((m) => ({key: m[1], when: `${m[2].toLowerCase()} spans`}))
-  if (bySpanKind.length >= 2) return {verdict: 'SPAN_KIND_DEPENDENT', replacements: bySpanKind}
+  if (bySpanKind.length >= 2 || (bySpanKind.length === 1 && /no replacement for (client|server|producer|consumer) spans/i.test(note))) {
+    return {verdict: 'SPAN_KIND_DEPENDENT', replacements: bySpanKind}
+  }
+  if (/\bone of\b.*\bdepending on\b/i.test(note) && mentioned.length >= 2) {
+    return {verdict: 'CONDITIONAL', replacements: mentioned.map((key) => ({key, when: 'depends on usage'}))}
+  }
 
   const movedRepo = note.match(/Moved to the \[([^\]]+)\]\(([^)]+)\)/)
   if (movedRepo) {
@@ -126,11 +131,11 @@ function classify(dep, knownKeys) {
   if (/\b(EventName field|span status)\b/.test(note)) {
     return {verdict: 'USE_SIGNAL_FIELD', replacements: []}
   }
-  if (dep.reason === 'obsoleted' || /\b(removed|no replacement)\b/i.test(note)) {
-    return {verdict: 'REMOVED', replacements: mentioned.filter(known).map((key) => ({key, when: 'related'}))}
-  }
   if (/\bsplit\b/i.test(note) && mentioned.length >= 2) {
     return {verdict: 'SPLIT', replacements: mentioned.map((key) => ({key, when: 'together'}))}
+  }
+  if (dep.reason === 'obsoleted' || /\b(removed|no replacement)\b/i.test(note)) {
+    return {verdict: 'REMOVED', replacements: mentioned.filter(known).map((key) => ({key, when: 'related'}))}
   }
   if (/\b(only if|unless|when)\b/i.test(note) && mentioned.length >= 1) {
     return {verdict: 'CONDITIONAL', replacements: mentioned.map((key) => ({key, when: 'condition in note'}))}
@@ -216,6 +221,9 @@ for (const [key, {attr, file}] of current) {
     doc.deprecation = {
       _type: 'deprecation',
       verdict,
+      // The key changes and so does the shape of the value: a type, a unit or a
+      // string representation. A plain key swap would be wrong.
+      valueChanges: /(\brepresentation\b|\bwith unit\b|\((string|int|double)\))/i.test(dep.note ?? '') || undefined,
       reason: dep.reason ?? 'unspecified',
       note: dep.note ?? undefined,
       deprecatedIn: h?.deprecatedIn,

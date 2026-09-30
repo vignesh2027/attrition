@@ -23,8 +23,8 @@ Every attribute document is one OpenTelemetry semantic convention attribute, imp
 A deprecated attribute has status "deprecated" and a deprecation object. deprecation.verdict is computed from the spec's own reason, renamed_to and note fields. Report the verdict as stored. Do not invent a replacement that is not in deprecation.replacements.
 
 What each verdict means for the user:
-- RENAMED or REPLACED: swap to replacements[0].key everywhere.
-- SPAN_KIND_DEPENDENT: the replacement depends on the span kind. replacements[].when says "client spans" or "server spans". If you do not know the span kind, ask; never pick one.
+- RENAMED or REPLACED: swap to replacements[0].key. If deprecation.valueChanges is true, the value must change format too (type, unit or string representation); say so.
+- SPAN_KIND_DEPENDENT: the replacement depends on the span kind. replacements[].when names the span kind it applies to (client, server, consumer). A kind with no entry has no replacement. If you do not know the span kind, ask; never pick one.
 - SPLIT: set every key in replacements together.
 - CONDITIONAL: read deprecation.note; the condition decides.
 - MERGED_INTO: fold the value into replacements[0].key (for example a fully qualified name).

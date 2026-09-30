@@ -104,6 +104,12 @@ export const deprecation = defineType({
     defineField({name: 'note', type: 'text', rows: 3}),
     defineField({name: 'deprecatedIn', title: 'First release that deprecates it', type: 'string'}),
     defineField({
+      name: 'valueChanges',
+      title: 'Value format changes too',
+      type: 'boolean',
+      description: 'The replacement expects a different type, unit or string representation, so a key swap alone is wrong.',
+    }),
+    defineField({
       name: 'replacements',
       type: 'array',
       of: [defineArrayMember({type: 'replacement'})],
