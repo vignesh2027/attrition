@@ -8,8 +8,8 @@ compatible API, and runs the tool loop itself.
     python ask.py "What replaced net.peer.name on a server span?"
     python ask.py --verbose "How do I dual-emit database attributes?"
 
-Needs SANITY_API_READ_TOKEN, GROQ_API_KEY and, for the Knowledge Base,
-SANITY_ORGANIZATION_TOKEN in the environment or in ../.env.
+Needs SANITY_ORGANIZATION_TOKEN (Context Viewer) and GROQ_API_KEY in the
+environment or in ../.env.
 """
 
 import argparse
@@ -28,21 +28,24 @@ from openai import OpenAI
 load_dotenv(pathlib.Path(__file__).resolve().parent.parent / ".env")
 
 DATASET_MCP = os.getenv(
-    "SANITY_CONTEXT_MCP_URL", "https://api.sanity.io/v2026-03-03/context/mcp/y9raau23/production/attrition"
+    "SANITY_CONTEXT_MCP_URL", "https://api.sanity.io/v1/context/organizations/oc2g3x7ee/mcp/attrition"
 )
 KB_MCP = os.getenv("SANITY_KB_MCP_URL", "https://api.sanity.io/v1/context/organizations/oc2g3x7ee/mcp/attrition-kb")
 KB_ID = os.getenv("SANITY_KB_ID", "kbI5ncVyqDpc")
 MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 MAX_STEPS = 5
 MAX_TOOL_CHARS = 3500
+# House style: no em or en dashes, and plain parentheses for citations.
+CLEAN = str.maketrans({"\u2014": "-", "\u2013": "-", "\u3010": " (", "\u3011": ")"})
 
 SYSTEM = f"""You answer questions about OpenTelemetry semantic conventions: attribute keys, metric names and event names.
 Verdicts, replacement names, units and releases come only from groq_query on the Sanity dataset. Types attribute, metric
 and event share these fields: {{key, status, stability, unit, lastSeenIn, "src": source.url,
 deprecation{{verdict, deprecatedIn, note, unitChange, replacements[]{{key, when}}}}}}.
-status "dropped" means the name left the spec with no deprecation entry; only a migration guide can give a replacement.
+status "dropped" means the name left the spec with no deprecation entry. For a dropped name you MUST then call
+knowledge_base_search with the name and knowledge_base_read the best hit, because only a migration guide records a replacement.
 Migration guidance comes from the Knowledge Base {KB_ID}: knowledge_base_search, then knowledge_base_read
-(paths such as migration/http, migration/database).
+(use the exact paths that knowledge_base_search returns).
 Never invent a name or a release. SPAN_KIND_DEPENDENT answers depend on client vs server spans.
 Be brief. Cite (Sanity dataset) or the Knowledge Base path. Never use em dashes or en dashes."""
 
@@ -71,9 +74,8 @@ async def main() -> int:
     async with AsyncExitStack() as stack:
         sessions: dict[str, ClientSession] = {}
         tools = []
-        endpoints = [(DATASET_MCP, os.environ["SANITY_API_READ_TOKEN"])]
-        if os.getenv("SANITY_ORGANIZATION_TOKEN"):
-            endpoints.append((KB_MCP, os.environ["SANITY_ORGANIZATION_TOKEN"]))
+        token = os.environ["SANITY_ORGANIZATION_TOKEN"]
+        endpoints = [(DATASET_MCP, token), (KB_MCP, token)]
         for url, token in endpoints:
             session = await connect(stack, url, token)
             for t in (await session.list_tools()).tools:
@@ -92,7 +94,7 @@ async def main() -> int:
         for _ in range(MAX_STEPS):
             reply = client.chat.completions.create(model=MODEL, messages=messages, tools=tools).choices[0].message
             if not reply.tool_calls:
-                print(reply.content.replace("—", "-").replace("–", "-"))
+                print(reply.content.translate(CLEAN))
                 return 0
             messages.append(reply.model_dump(exclude_none=True))
             for call in reply.tool_calls:

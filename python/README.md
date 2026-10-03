@@ -10,5 +10,5 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python ask.py --verbose "How do I dual-emit database attributes?"
 ```
 
-It reads `SANITY_API_READ_TOKEN`, `GROQ_API_KEY` and, for the Knowledge Base,
-`SANITY_ORGANIZATION_TOKEN` from the environment or from `../.env`.
+It reads `SANITY_ORGANIZATION_TOKEN` (Context Viewer) and `GROQ_API_KEY` from the
+environment or from `../.env`.

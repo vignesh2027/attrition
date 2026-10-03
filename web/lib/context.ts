@@ -4,12 +4,14 @@ import 'server-only'
 
 export type TraceEntry = {tool: string; query?: string; ms: number; resultCount?: number}
 
-export const MCP_URL =
-  process.env.SANITY_CONTEXT_MCP_URL ?? 'https://api.sanity.io/v2026-03-03/context/mcp/y9raau23/production/attrition'
+// Organization-level Context MCP endpoints, configured in the Sanity Dashboard
+// Context app (see studio/mcp-endpoints.mjs): one over the dataset, one over
+// the Knowledge Base. Both take an organization token with Context Viewer.
+export const MCP_URL = process.env.SANITY_CONTEXT_MCP_URL ?? 'https://api.sanity.io/v1/context/organizations/oc2g3x7ee/mcp/attrition'
 
 function token() {
-  const t = process.env.SANITY_API_READ_TOKEN
-  if (!t) throw new Error('SANITY_API_READ_TOKEN is not set')
+  const t = process.env.SANITY_ORGANIZATION_TOKEN
+  if (!t) throw new Error('SANITY_ORGANIZATION_TOKEN is not set')
   return t
 }
 
