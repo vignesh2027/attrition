@@ -55,20 +55,15 @@ export async function kbRead(paths: string[], trace: TraceEntry[]): Promise<stri
   return text
 }
 
-let outlineCache: {paths: string[]; at: number} | null = null
-
-// Entry paths from the Knowledge Base outline, cached for ten minutes.
-export async function kbPaths(trace?: TraceEntry[]): Promise<string[]> {
-  if (outlineCache && Date.now() - outlineCache.at < 10 * 60_000) return outlineCache.paths
+// Keyword search over the Knowledge Base. Returns entry paths ranked by score.
+export async function kbSearch(query: string, trace: TraceEntry[], limit = 3): Promise<Array<{path: string; score: number}>> {
+  const orgToken = process.env.SANITY_ORGANIZATION_TOKEN
+  if (!KB_MCP_URL || !KB_ID || !orgToken) return []
   const started = Date.now()
-  const text = await kbInitialContext()
-  const paths = text
-    .split('\n')
-    .map((l) => l.trim().split(/\s/)[0])
-    .filter((p) => /^[a-z_]+(\/[a-z0-9_]+)+$/.test(p))
-  trace?.push({tool: 'initial_context', query: 'Knowledge Base outline', ms: Date.now() - started, resultCount: paths.length})
-  if (paths.length) outlineCache = {paths, at: Date.now()}
-  return paths
+  const text = await callTool('knowledge_base_search', {knowledgeBase: KB_ID, query, limit}, KB_MCP_URL, orgToken)
+  const hits = [...text.matchAll(/`([a-z0-9_/]+)`\s*\(score\s*([\d.]+)\)/g)].map((m) => ({path: m[1], score: Number(m[2])}))
+  trace.push({tool: 'knowledge_base_search', query, ms: Date.now() - started, resultCount: hits.length})
+  return hits
 }
 
 // The Knowledge Base outline, for the chat agent's system prompt.

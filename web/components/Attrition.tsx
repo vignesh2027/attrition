@@ -83,6 +83,7 @@ export function Attrition({samples}: {samples: Sample[]}) {
           patch.
         </p>
         <nav className="links">
+          <a href="/decisions">Knowledge Base decisions</a>
           <a href={LINKS.repo}>Code</a>
           <a href={LINKS.studio}>Sanity Studio</a>
           <a href={LINKS.dataset}>Public dataset (project y9raau23)</a>

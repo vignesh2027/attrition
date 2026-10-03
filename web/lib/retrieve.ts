@@ -9,8 +9,7 @@
 // means the agent never has to guess which document to open.
 import 'server-only'
 import {analyzeKeys, scan} from './analyze'
-import {groq, groqString, kbPaths, kbRead, type TraceEntry} from './context'
-import {guideFor} from './guidance'
+import {groq, groqString, kbRead, kbSearch, type TraceEntry} from './context'
 
 const NAMESPACE_WORDS: Array<[RegExp, string]> = [
   [/\b(database|db|sql|query|queries)\b/i, 'db'],
@@ -91,9 +90,11 @@ export async function retrieve(question: string): Promise<Evidence> {
     }
   }
 
-  const guideNamespaces = new Set([...keys.map((k) => k.split('.')[0]), ...namespaces])
-  const paths = guideNamespaces.size ? await kbPaths(trace).catch(() => []) : []
-  const entries = [...new Set([...guideNamespaces].map((ns) => guideFor(ns, paths)).filter((e): e is string => Boolean(e)))].slice(0, 2)
+  // Ask the Knowledge Base itself which entries cover the question: search by
+  // the names it mentions, or by the question text when it names none.
+  const queries = keys.length ? keys.slice(0, 3) : [prose.slice(0, 200)]
+  const hits = (await Promise.all(queries.map((q) => kbSearch(q, trace, 2).catch(() => [])))).flat()
+  const entries = [...new Set(hits.sort((a, b) => Number(b.path.includes('migration')) - Number(a.path.includes('migration')) || b.score - a.score).map((h) => h.path))].slice(0, 2)
   for (const entry of entries) {
     try {
       const text = await kbRead([entry], trace)

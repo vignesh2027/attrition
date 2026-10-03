@@ -3,8 +3,8 @@
 // dependent attributes is chosen from the span kind found in the code, and
 // left open when the code does not state one.
 import 'server-only'
-import {groq, groqString, kbPaths, kbRead, type TraceEntry} from './context'
-import {guideFor, guidanceFor, optInHint, type Guidance} from './guidance'
+import {groq, groqString, kbRead, kbSearch, type TraceEntry} from './context'
+import {guidanceFor, optInHint, type Guidance} from './guidance'
 import {buildIndex, extract, type KeyIndex, type Kind, type SpanKind, type Usage} from './extract'
 import {buildPatch, type Edit} from './patch'
 
@@ -294,44 +294,62 @@ export async function scan(code: string): Promise<ScanResult> {
     }
   }
 
-  // Knowledge Base: add what the official migration guide says about each key.
+  // Knowledge Base: ask it about each retired name (knowledge_base_search),
+  // read the entries it points to (knowledge_base_read), and keep the guide
+  // row that talks about that name. Entry paths change between builds, so
+  // none are hard-coded.
   const migrationGuides: ScanResult['migrationGuides'] = []
-  const deprecatedFindings = findings.filter((f) => f.status !== 'current')
-  const paths = deprecatedFindings.length ? await kbPaths(trace).catch(() => []) : []
-  const guideOf = (key: string) => guideFor(key.split('.')[0], paths)
-  const entries = [...new Set(deprecatedFindings.map((f) => guideOf(f.key)).filter((e): e is string => Boolean(e)))]
-  await Promise.all(
-    entries.map(async (entry) => {
-      try {
-        const text = await kbRead([entry], trace)
-        if (!text) return
-        migrationGuides.push({entry, optIn: optInHint(text)})
-        for (const f of findings) {
-          if (guideOf(f.key) !== entry) continue
-          const g = guidanceFor(f.key, entry, text)
-          // The guide files some renames under one span kind only. Say so when
-          // this usage sits on the other kind, where the registry answer differs.
-          const kinds = [...new Set((g?.section ?? '').toLowerCase().match(/\b(client|server)\b/g) ?? [])]
-          const kind = kinds.length === 1 ? kinds[0] : undefined
-          if (g && kind && f.spanKind && kind !== f.spanKind) g.appliesToOtherSpanKind = true
-          // A name the registry dropped silently: the guide is the only source of a replacement.
-          if (g && f.verdict === 'DROPPED' && g.change.includes('→')) {
-            const guided = g.change.split('→')[1].trim()
-            f.replacement = guided
-            f.replacementReason = `The registry has no record of this name after ${f.lastSeenIn}. The migration guide maps it to ${guided}${g.comment ? `. ${g.comment}` : ''}.`
-          }
-          if (g && (f.verdict === 'RENAMED' || f.verdict === 'REPLACED') && /^(removed|integrated)\b/i.test(g.comment ?? '')) {
-            g.disagreesWithRegistry = true
-            f.needsDecision = true
-            f.replacementReason = `The registry says renamed to ${f.replacement}, but the migration guide says: "${g.comment}". Check the value before swapping the key.`
-          }
-          f.guidance = g
-        }
-      } catch {
-        // The Knowledge Base is an enrichment. A failure here never hides a verdict.
+  const retired = findings.filter((f) => f.status !== 'current' && !f.value)
+  // One search per namespace finds its migration guide; dropped names, which
+  // only a guide can answer, also get a search of their own.
+  const GUIDE_WORD: Record<string, string> = {db: 'database', net: 'http', url: 'http'}
+  const nsOf = (key: string) => key.split('.')[0]
+  const namespaces = [...new Set(retired.map((f) => nsOf(f.key)))].slice(0, 4)
+  const dropped = [...new Set(retired.filter((f) => f.verdict === 'DROPPED').map((f) => f.key))].slice(0, 4)
+  try {
+    const [nsHits, keyHits] = await Promise.all([
+      Promise.all(namespaces.map(async (ns) => [ns, (await kbSearch(`${GUIDE_WORD[ns] ?? ns} migration`, trace, 3)).map((h) => h.path)] as const)),
+      Promise.all(dropped.map(async (k) => [k, (await kbSearch(k, trace, 2)).map((h) => h.path)] as const)),
+    ])
+    const guidesFor = new Map(nsHits.map(([ns, paths]) => [ns, paths.filter((p) => p.includes('migration'))]))
+    const extraFor = new Map(keyHits)
+    const candidates = (f: Finding) => [...new Set([...(guidesFor.get(nsOf(f.key)) ?? []), ...(extraFor.get(f.key) ?? [])])]
+    const entries = [...new Set(retired.flatMap(candidates))].slice(0, 6)
+    const texts = new Map(
+      await Promise.all(entries.map(async (e) => [e, (await kbRead([e], trace).catch(() => null)) ?? ''] as const)),
+    )
+    for (const [entry, text] of texts) {
+      const optIn = optInHint(text)
+      if (optIn && entry.includes('migration')) migrationGuides.push({entry, optIn})
+    }
+    for (const f of retired) {
+      let g: Guidance | null = null
+      for (const entry of candidates(f)) {
+        g = texts.has(entry) ? guidanceFor(f.key, entry, texts.get(entry)!) : null
+        if (g) break
       }
-    }),
-  )
+      if (!g) continue
+      // The guide files some renames under one span kind only. Say so when
+      // this usage sits on the other kind, where the registry answer differs.
+      const kinds = [...new Set((g.section ?? '').toLowerCase().match(/\b(client|server)\b/g) ?? [])]
+      const kind = kinds.length === 1 ? kinds[0] : undefined
+      if (f.kind === 'attribute' && kind && f.spanKind && kind !== f.spanKind) g.appliesToOtherSpanKind = true
+      // A name the registry dropped silently: the guide is the only source of a replacement.
+      if (f.verdict === 'DROPPED' && g.change.includes('→')) {
+        const guided = g.change.split('→')[1].trim()
+        f.replacement = guided
+        f.replacementReason = `The registry has no record of this name after ${f.lastSeenIn}. The migration guide maps it to ${guided}${g.comment ? `. ${g.comment}` : ''}.`
+      }
+      if ((f.verdict === 'RENAMED' || f.verdict === 'REPLACED') && /^(removed|integrated)\b/i.test(g.comment ?? '')) {
+        g.disagreesWithRegistry = true
+        f.needsDecision = true
+        f.replacementReason = `The registry says renamed to ${f.replacement}, but the migration guide says: "${g.comment}". Check the value before swapping the key.`
+      }
+      f.guidance = g
+    }
+  } catch {
+    // The Knowledge Base is an enrichment. A failure here never hides a verdict.
+  }
 
   // Only unambiguous renames reach the patch; anything that needs a person stays out.
   const safeEdits = pending.filter((p) => !p.finding.needsDecision && p.finding.replacement).map((p) => p.edit)

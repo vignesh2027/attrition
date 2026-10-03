@@ -16,24 +16,6 @@ export type Guidance = {
   disagreesWithRegistry?: boolean
 }
 
-// Knowledge Base builds choose their own entry paths, so the guide for a
-// namespace is found by keyword in the outline rather than hard-coded.
-const GUIDE_KEYWORDS: Record<string, string[]> = {
-  http: ['http'],
-  net: ['http'],
-  url: ['http'],
-  db: ['database', 'db'],
-  rpc: ['rpc'],
-  code: ['code'],
-}
-
-export function guideFor(namespace: string, paths: string[]): string | undefined {
-  const words = GUIDE_KEYWORDS[namespace]
-  if (!words) return undefined
-  const guides = paths.filter((p) => p.startsWith('migration'))
-  return guides.find((p) => words.some((w) => p.split('/').pop() === w)) ?? guides.find((p) => words.some((w) => p.includes(w)))
-}
-
 const cells = (row: string) =>
   row
     .trim()
@@ -61,7 +43,7 @@ export function guidanceFor(key: string, entry: string, text: string): Guidance 
     const [change, ...rest] = cells(line)
     // Metric tables: "| Name | `old` | `new` |", with a "| Unit | ... |" row nearby.
     if (/^name$/i.test(change) && rest[0] === needle && rest[1]) {
-      const unit = text.split('\n').find((l, _, all) => /^\|\s*Unit\s*\|/i.test(l) && Math.abs(all.indexOf(l) - all.indexOf(line)) <= 3)
+      const unit = lines.slice(i + 1, i + 4).find((l) => /^\|\s*Unit\s*\|/i.test(l))
       const u = unit ? cells(unit) : null
       return {
         entry,
@@ -74,17 +56,27 @@ export function guidanceFor(key: string, entry: string, text: string): Guidance 
     if (!change.startsWith(needle)) continue
     // Two table layouts occur: "old -> new | comment" and "old | new | comment".
     if (!change.includes('→') && rest.length >= 2 && /^`[^`]+`(\s*(,|and|or)\s*`[^`]+`)*$/.test(rest[0])) {
-      const comment = rest.slice(1).join(' ').trim()
+      const comment = rest.slice(1).join(' ').replace(/\s*\[\d+\]/g, '').trim()
       return {entry, section, change: `${key} → ${rest[0].replace(/`/g, '')}`, comment: comment || null}
     }
-    const comment = rest.join(' ').trim()
+    const comment = rest.join(' ').replace(/\s*\[\d+\]/g, '').trim()
     return {entry, section, change: change.replace(/`/g, ''), comment: comment || null}
+  }
+  // Prose fallback: "`db.name` (integrated into `db.namespace`)".
+  const esc = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  for (const line of lines) {
+    const m = line.match(new RegExp(`${esc}\\s*\\(([^)]*\\b(?:integrated|replaced|removed|renamed)\\b[^)]*)\\)`, 'i'))
+    if (m) return {entry, section: null, change: key, comment: m[1].replace(/`/g, '').trim()}
   }
   return null
 }
 
+// The dual-emit setting a guide recommends, from its opt-in table or prose.
 export function optInHint(text: string): string | null {
-  const lines = text.split('\n').filter((l) => l.includes('OTEL_SEMCONV_STABILITY_OPT_IN') && !l.trim().startsWith('|'))
-  const line = lines.find((l) => l.includes('/dup')) ?? lines.find((l) => /\b(MAY use|support)/.test(l))
-  return line ? line.replace(/\s*\[\d+\]/g, '').trim() : null
+  if (!text.includes('OTEL_SEMCONV_STABILITY_OPT_IN')) return null
+  const dup = text.split('\n').find((l) => /`[a-z]+\/dup`/.test(l))
+  if (!dup) return null
+  const value = dup.match(/`([a-z]+\/dup)`/)![1]
+  const rest = dup.trim().startsWith('|') ? dup.split('|').map((c) => c.trim()).filter(Boolean).slice(1).join(' ') : ''
+  return `Set OTEL_SEMCONV_STABILITY_OPT_IN=${value} to ${rest ? rest.charAt(0).toLowerCase() + rest.slice(1).replace(/\s*\[\d+\]/g, '') : 'emit both the old and the new conventions during the move'}.`
 }

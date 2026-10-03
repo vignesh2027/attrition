@@ -19,7 +19,7 @@ fi
 
 npx sanity context imports create "$KB" \
   --sanity-project "$PROJECT" --sanity-dataset "$DATASET" \
-  --query '*[_type == "attribute" && status == "deprecated" && deprecation.verdict != "MOVED_OUT" && string::split(key, ".")[0] in ["db", "http", "net", "rpc", "messaging", "code", "message"]]'
+  --query '*[(_type == "attribute" && status != "current" && deprecation.verdict != "MOVED_OUT" && string::split(key, ".")[0] in ["db", "http", "net", "rpc", "messaging", "code", "message"]) || (_type == "metric" && status != "current" && deprecation.verdict != "MOVED_OUT" && string::split(key, ".")[0] in ["http", "db", "rpc", "messaging"])]'
 
 for f in ../kb/sources/*.md; do
   npx sanity context imports create "$KB" --file "$f" --content-type text/markdown
