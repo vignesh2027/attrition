@@ -10,6 +10,7 @@
 import 'server-only'
 import {analyzeKeys, scan} from './analyze'
 import {groq, groqString, kbRead, kbSearch, type TraceEntry} from './context'
+import {clean} from './text'
 
 const NAMESPACE_WORDS: Array<[RegExp, string]> = [
   [/\b(database|db|sql|query|queries)\b/i, 'db'],
@@ -103,7 +104,7 @@ export async function retrieve(question: string): Promise<Evidence> {
       const rows = lines.filter(
         (l) => /OTEL_SEMCONV_STABILITY_OPT_IN/.test(l) || (keys.length ? keys.some((k) => l.includes(`\`${k}\``)) : /^#{1,3} /.test(l)),
       )
-      evidence.guideRows.push({entry, rows: rows.slice(0, 25)})
+      evidence.guideRows.push({entry, rows: rows.slice(0, 25).map((r) => clean(r))})
     } catch {
       // The Knowledge Base adds guidance; its absence never blocks an answer.
     }

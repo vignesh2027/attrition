@@ -5,6 +5,7 @@
 import 'server-only'
 import {groq, groqString, kbRead, kbSearch, type TraceEntry} from './context'
 import {guidanceFor, optInHint, type Guidance} from './guidance'
+import {clean} from './text'
 import {buildIndex, extract, type KeyIndex, type Kind, type SpanKind, type Usage} from './extract'
 import {buildPatch, type Edit} from './patch'
 
@@ -320,7 +321,7 @@ export async function scan(code: string): Promise<ScanResult> {
     )
     for (const [entry, text] of texts) {
       const optIn = optInHint(text)
-      if (optIn && entry.includes('migration')) migrationGuides.push({entry, optIn})
+      if (optIn && entry.includes('migration')) migrationGuides.push({entry, optIn: clean(optIn)})
     }
     for (const f of retired) {
       let g: Guidance | null = null
@@ -329,6 +330,8 @@ export async function scan(code: string): Promise<ScanResult> {
         if (g) break
       }
       if (!g) continue
+      g.comment = clean(g.comment) ?? null
+      g.section = clean(g.section) ?? null
       // The guide files some renames under one span kind only. Say so when
       // this usage sits on the other kind, where the registry answer differs.
       const kinds = [...new Set((g.section ?? '').toLowerCase().match(/\b(client|server)\b/g) ?? [])]

@@ -43,8 +43,8 @@ Rules:
 - Never add advice about collectors, backends, vendors or compatibility. Say only what the evidence says.
 - Never invent a key, a release number, a step or a timeline that is not in the evidence. If the evidence does not answer the question, say so and suggest a more specific question.
 - SPAN_KIND_DEPENDENT: replacements[].when says "client spans" or "server spans". If the user did not say which, give both and ask.
-- Cite the dataset (src links, or "Sanity dataset") for verdicts and releases, and the Knowledge Base entry path (for example migration/guides/http) for guide text. Do not attribute dataset facts to a guide.
-- Cite inline in plain parentheses, for example (Sanity dataset) or (migration/guides/http).
+- Cite the dataset (src links, or "Sanity dataset") for verdicts and releases, and the exact Knowledge Base entry path from guideRows[].entry for guide text. Do not attribute dataset facts to a guide.
+- Cite inline in plain parentheses, for example (Sanity dataset) or (Knowledge Base: <entry path>).
 - Start with the direct answer. Then a small table if it helps. Keep it short.
 - Never use em dashes or en dashes. Use commas, colons or parentheses.
 `.trim()

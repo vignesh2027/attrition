@@ -2,6 +2,7 @@
 // so anyone can see what Attrition was told to treat as ground truth.
 import 'server-only'
 import {createClient} from '@sanity/client'
+import {clean} from './text'
 
 export type Side = {claim: string; value?: string; entryPaths?: string[]; sourceIds?: string[]}
 export type Decision = {id: string; issue: string; severity: string; sides: Side[]; chosen: number | null; status: string; updatedAt: string}
@@ -26,16 +27,16 @@ export async function loadDecisions(): Promise<{decisions: Decision[]; instructi
       .filter((i) => i.content.kind === 'conflict')
       .map((i) => ({
         id: i._id,
-        issue: i.content.issue,
+        issue: clean(i.content.issue),
         severity: i.content.severity,
-        sides: i.content.sides ?? [],
+        sides: (i.content.sides ?? []).map((side) => ({...side, claim: clean(side.claim), value: clean(side.value) ?? undefined})),
         chosen: typeof i.resolution === 'number' ? i.resolution : null,
         status: i.status,
         updatedAt: i._updatedAt,
       })),
     instructions: (instructions as unknown as Array<{_id: string; _createdAt: string; statement: string; origin: string; status: string; scopeSources?: unknown[]}>)
       .filter((i) => i.status === 'active')
-      .map((i) => ({id: i._id, statement: i.statement, origin: i.origin, status: i.status, createdAt: i._createdAt, sourceCount: i.scopeSources?.length ?? 0})),
+      .map((i) => ({id: i._id, statement: clean(i.statement), origin: i.origin, status: i.status, createdAt: i._createdAt, sourceCount: i.scopeSources?.length ?? 0})),
     otherIssues: raw.filter((i) => i.content.kind !== 'conflict').length,
   }
 }
