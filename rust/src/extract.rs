@@ -1,9 +1,35 @@
-//! Finds OpenTelemetry attribute usage in source text. A port of the web
-//! extractor (web/lib/extract.ts) so both give the same answer.
+//! Finds OpenTelemetry names in source text: attribute keys, metric names,
+//! event names and deprecated enum values. A port of the web extractor
+//! (web/lib/extract.ts) so both give the same answer; bench/parity.sh checks it.
 
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Kind {
+    Attribute,
+    Metric,
+    Event,
+}
+
+impl Kind {
+    pub fn parse(s: &str) -> Kind {
+        match s {
+            "metric" => Kind::Metric,
+            "event" => Kind::Event,
+            _ => Kind::Attribute,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Kind::Attribute => "attribute",
+            Kind::Metric => "metric",
+            Kind::Event => "event",
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Form {
@@ -16,16 +42,30 @@ pub enum Form {
 #[derive(Debug, Clone)]
 pub struct Usage {
     pub key: String,
+    pub kind: Kind,
+    /// Set when the finding is a deprecated enum value of the attribute.
+    pub value: Option<String>,
     pub line: usize,
     pub column: usize,
     pub form: Form,
     pub span_kind: Option<String>,
 }
 
+/// One name from the dataset.
+pub struct Entry {
+    pub kind: Kind,
+    pub key: String,
+    pub members: Vec<String>,
+    pub deprecated_values: Vec<String>,
+}
+
 pub struct Index {
-    pub keys: HashSet<String>,
+    attributes: HashSet<String>,
+    metrics: HashSet<String>,
+    events: HashSet<String>,
     by_norm: HashMap<String, Vec<String>>,
     members: HashMap<String, Vec<String>>,
+    deprecated_values: HashMap<String, Vec<String>>,
 }
 
 fn norm(s: &str) -> String {
@@ -33,24 +73,46 @@ fn norm(s: &str) -> String {
 }
 
 impl Index {
-    pub fn new(entries: impl IntoIterator<Item = (String, Vec<String>)>) -> Self {
-        let mut idx = Index { keys: HashSet::new(), by_norm: HashMap::new(), members: HashMap::new() };
-        for (key, members) in entries {
-            idx.by_norm.entry(norm(&key)).or_default().push(key.clone());
-            if !members.is_empty() {
-                idx.members.insert(key.clone(), members);
+    pub fn new(entries: impl IntoIterator<Item = Entry>) -> Self {
+        let mut idx = Index {
+            attributes: HashSet::new(),
+            metrics: HashSet::new(),
+            events: HashSet::new(),
+            by_norm: HashMap::new(),
+            members: HashMap::new(),
+            deprecated_values: HashMap::new(),
+        };
+        for e in entries {
+            match e.kind {
+                Kind::Metric => {
+                    idx.metrics.insert(e.key);
+                }
+                Kind::Event => {
+                    idx.events.insert(e.key);
+                }
+                Kind::Attribute => {
+                    idx.by_norm.entry(norm(&e.key)).or_default().push(e.key.clone());
+                    if !e.members.is_empty() {
+                        idx.members.insert(e.key.clone(), e.members);
+                    }
+                    if !e.deprecated_values.is_empty() {
+                        idx.deprecated_values.insert(e.key.clone(), e.deprecated_values);
+                    }
+                    idx.attributes.insert(e.key);
+                }
             }
-            idx.keys.insert(key);
         }
         idx
     }
 
-    fn resolve_constant(&self, name: &str) -> Option<(String, Form)> {
+    /// Returns the attribute, the form, and the enum value when it is unique.
+    fn resolve_constant(&self, name: &str) -> Option<(String, Form, Option<String>)> {
         let n = norm(name);
         if let Some(keys) = self.by_norm.get(&n)
-            && keys.len() == 1 {
-                return Some((keys[0].clone(), Form::Constant));
-            }
+            && keys.len() == 1
+        {
+            return Some((keys[0].clone(), Form::Constant, None));
+        }
         // Enum value constants: DBSystemRedis -> db.system + "redis"
         for cut in (3..n.len()).rev() {
             let Some(keys) = self.by_norm.get(&n[..cut]) else { continue };
@@ -58,8 +120,12 @@ impl Index {
                 continue;
             }
             let rest = &n[cut..];
-            if self.members.get(&keys[0]).is_some_and(|m| m.iter().any(|v| norm(v) == rest)) {
-                return Some((keys[0].clone(), Form::EnumConstant));
+            let found: Vec<&String> = self.members.get(&keys[0]).map(|m| m.iter().filter(|v| norm(v) == rest).collect()).unwrap_or_default();
+            if !found.is_empty() {
+                // Old and new values can share one constant name (azure_vm and
+                // azure.vm are both CloudPlatformAzureVM), so name it only when unique.
+                let value = if found.len() == 1 { Some(found[0].clone()) } else { None };
+                return Some((keys[0].clone(), Form::EnumConstant, value));
             }
         }
         None
@@ -68,6 +134,9 @@ impl Index {
 
 static STRING_LITERAL: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"["'`]([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)["'`]"#).unwrap());
+static ANY_LITERAL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"["'`]([^"'`\s]{1,64})["'`]"#).unwrap());
+static METRIC_CALL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)histogram|counter|gauge|meter|instrument|metric").unwrap());
+static EVENT_CALL: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)event|emit|logrecord|log_record").unwrap());
 static CONSTANTS: LazyLock<Vec<(Regex, bool)>> = LazyLock::new(|| {
     vec![
         (Regex::new(r"\b(?:ATTR|SEMATTRS|SEMRESATTRS)_([A-Z0-9_]+)\b").unwrap(), false),
@@ -137,25 +206,52 @@ pub fn extract(code: &str, index: &Index) -> Vec<Usage> {
         } else {
             TRAILING_COMMENT.find(text).map(|m| m.start()).unwrap_or(usize::MAX)
         };
-        let mut push = |key: String, col: usize, found: Form| {
-            if !seen.insert((line, col, key.clone())) {
+        let mut push = |key: String, col: usize, found: Form, kind: Kind, value: Option<String>| {
+            if !seen.insert((line, col, kind, key.clone(), value.clone())) {
                 return;
             }
             let form = if col >= comment_at { Form::Comment } else { found };
-            out.push(Usage { key, line, column: col, form, span_kind: nearest_kind(&marks, line) });
+            out.push(Usage { key, kind, value, line, column: col, form, span_kind: nearest_kind(&marks, line) });
         };
+        // (attribute, byte offset after which a deprecated value may follow)
+        let mut value_checks: Vec<(String, usize)> = Vec::new();
+
         for c in STRING_LITERAL.captures_iter(text) {
             let m = c.get(0).unwrap();
-            if index.keys.contains(&c[1]) {
-                push(c[1].to_string(), m.start(), Form::String);
+            let name = &c[1];
+            let is_attr = index.attributes.contains(name);
+            if index.metrics.contains(name) && (!is_attr || METRIC_CALL.is_match(text)) {
+                push(name.to_string(), m.start(), Form::String, Kind::Metric, None);
+            } else if index.events.contains(name) && (!is_attr || EVENT_CALL.is_match(text)) {
+                push(name.to_string(), m.start(), Form::String, Kind::Event, None);
+            } else if is_attr {
+                push(name.to_string(), m.start(), Form::String, Kind::Attribute, None);
+                value_checks.push((name.to_string(), m.end()));
             }
         }
         for (rx, go_style) in CONSTANTS.iter() {
             for c in rx.captures_iter(text) {
                 let raw = &c[1];
                 let name = if *go_style { raw.strip_suffix("Key").unwrap_or(raw) } else { raw };
-                if let Some((key, form)) = index.resolve_constant(name) {
-                    push(key, c.get(0).unwrap().start(), form);
+                let Some((key, form, value)) = index.resolve_constant(name) else { continue };
+                let m = c.get(0).unwrap();
+                push(key.clone(), m.start(), form.clone(), Kind::Attribute, None);
+                if let Some(v) = value
+                    && index.deprecated_values.get(&key).is_some_and(|d| d.contains(&v))
+                {
+                    push(key.clone(), m.start(), form.clone(), Kind::Attribute, Some(v));
+                }
+                if form == Form::Constant {
+                    value_checks.push((key, m.end()));
+                }
+            }
+        }
+        for (key, after) in value_checks {
+            let Some(dep) = index.deprecated_values.get(&key) else { continue };
+            let rest = &text[after..];
+            for c in ANY_LITERAL.captures_iter(rest) {
+                if dep.iter().any(|d| d == &c[1]) {
+                    push(key.clone(), after + c.get(0).unwrap().start(), Form::String, Kind::Attribute, Some(c[1].to_string()));
                 }
             }
         }
@@ -168,12 +264,28 @@ pub fn extract(code: &str, index: &Index) -> Vec<Usage> {
 mod tests {
     use super::*;
 
+    fn entry(kind: Kind, key: &str, members: &[&str], deprecated: &[&str]) -> Entry {
+        Entry {
+            kind,
+            key: key.into(),
+            members: members.iter().map(|s| s.to_string()).collect(),
+            deprecated_values: deprecated.iter().map(|s| s.to_string()).collect(),
+        }
+    }
+
     fn index() -> Index {
         Index::new([
-            ("db.system".to_string(), vec!["redis".to_string()]),
-            ("db.name".to_string(), vec![]),
-            ("http.request.method".to_string(), vec![]),
-            ("net.peer.name".to_string(), vec![]),
+            entry(Kind::Attribute, "db.system", &["redis"], &[]),
+            entry(Kind::Attribute, "db.name", &[], &[]),
+            entry(Kind::Attribute, "http.request.method", &[], &[]),
+            entry(Kind::Attribute, "http.method", &[], &[]),
+            entry(Kind::Attribute, "net.peer.name", &[], &[]),
+            entry(Kind::Attribute, "cloud.platform", &["azure_vm", "azure.vm"], &["azure_vm"]),
+            entry(Kind::Attribute, "cloud.provider", &[], &[]),
+            entry(Kind::Attribute, "k8s.pod.status.phase", &[], &[]),
+            entry(Kind::Metric, "k8s.pod.status.phase", &[], &[]),
+            entry(Kind::Metric, "http.server.duration", &[], &[]),
+            entry(Kind::Event, "gen_ai.choice", &[], &[]),
         ])
     }
 
@@ -199,5 +311,32 @@ mod tests {
         assert_eq!(got[0].key, "net.peer.name");
         assert_eq!(got[0].span_kind.as_deref(), Some("server"));
         assert_eq!(got[1].form, Form::Comment);
+    }
+
+    #[test]
+    fn metric_and_event_names_are_kept_apart_from_attributes() {
+        let code = "const d = meter.createHistogram('http.server.duration', {unit: 'ms'})\nlogger.emit({eventName: 'gen_ai.choice'})\nspan.setAttribute('http.method', 'GET')";
+        let got: Vec<_> = extract(code, &index()).into_iter().map(|u| (u.line, u.key, u.kind)).collect();
+        assert_eq!(
+            got,
+            vec![
+                (1, "http.server.duration".into(), Kind::Metric),
+                (2, "gen_ai.choice".into(), Kind::Event),
+                (3, "http.method".into(), Kind::Attribute),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_shared_name_is_read_by_its_call() {
+        assert_eq!(extract("meter.createGauge('k8s.pod.status.phase')", &index())[0].kind, Kind::Metric);
+        assert_eq!(extract("span.setAttribute('k8s.pod.status.phase', 'x')", &index())[0].kind, Kind::Attribute);
+    }
+
+    #[test]
+    fn deprecated_values_only_next_to_their_key_and_never_when_ambiguous() {
+        let code = "r.set(\"cloud.platform\", \"azure_vm\")\nx.set(\"cloud.provider\", \"azure_vm\")\ny := semconv.CloudPlatformAzureVM";
+        let got: Vec<_> = extract(code, &index()).into_iter().filter_map(|u| u.value.map(|v| (u.line, u.key, v))).collect();
+        assert_eq!(got, vec![(1, "cloud.platform".into(), "azure_vm".into())]);
     }
 }

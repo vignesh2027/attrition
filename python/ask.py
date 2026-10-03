@@ -36,12 +36,14 @@ MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 MAX_STEPS = 5
 MAX_TOOL_CHARS = 3500
 
-SYSTEM = f"""You answer questions about OpenTelemetry semantic convention attributes.
-Verdicts and replacement keys come only from groq_query on the Sanity dataset:
-attribute{{key, status, stability, "src": source.url, deprecation{{verdict, deprecatedIn, note, replacements[]{{key, when}}}}}}.
+SYSTEM = f"""You answer questions about OpenTelemetry semantic conventions: attribute keys, metric names and event names.
+Verdicts, replacement names, units and releases come only from groq_query on the Sanity dataset. Types attribute, metric
+and event share these fields: {{key, status, stability, unit, lastSeenIn, "src": source.url,
+deprecation{{verdict, deprecatedIn, note, unitChange, replacements[]{{key, when}}}}}}.
+status "dropped" means the name left the spec with no deprecation entry; only a migration guide can give a replacement.
 Migration guidance comes from the Knowledge Base {KB_ID}: knowledge_base_search, then knowledge_base_read
-(paths such as migration/guides/http, migration/guides/database).
-Never invent a key or a release. SPAN_KIND_DEPENDENT answers depend on client vs server spans.
+(paths such as migration/http, migration/database).
+Never invent a name or a release. SPAN_KIND_DEPENDENT answers depend on client vs server spans.
 Be brief. Cite (Sanity dataset) or the Knowledge Base path. Never use em dashes or en dashes."""
 
 # The only tools the model gets, with short descriptions to save tokens.

@@ -1,5 +1,6 @@
-// Command attrition scans a source tree for OpenTelemetry attribute names that
-// the semantic conventions have deprecated.
+// Command attrition scans a source tree for OpenTelemetry attribute keys,
+// metric names, event names and enum values that the semantic conventions have
+// deprecated, renamed or dropped.
 //
 // It walks the given paths, keeps only files that mention an attribute-like
 // string or a semconv constant, and sends each one to the Attrition
@@ -45,8 +46,9 @@ var skipDir = map[string]bool{
 	"target": true, "__pycache__": true, ".venv": true, "venv": true, "third_party": true,
 }
 
-// A cheap filter so only files that could contain an attribute are sent.
-var candidate = regexp.MustCompile(`["'` + "`" + `](db|http|net|network|rpc|messaging|code|server|client|url|user_agent|gen_ai|exception|faas|cloud|k8s|container|process|host|service|enduser|peer|thread|message)\.[a-z0-9_.]+["'` + "`" + `]|semconv\.|SEMATTRS_|SEMRESATTRS_|ATTR_[A-Z]|Attributes\.[A-Z_]+`)
+// A cheap filter so only files that could contain a semconv name are sent:
+// any dotted lowercase string literal, or an SDK constant.
+var candidate = regexp.MustCompile(`["'` + "`" + `][a-z][a-z0-9_]*\.[a-z0-9_.]+["'` + "`" + `]|semconv\.|SEMATTRS_|SEMRESATTRS_|ATTR_[A-Z]|Attributes\.[A-Z_]+`)
 
 type edit struct {
 	Line int    `json:"line"`
@@ -56,6 +58,8 @@ type edit struct {
 
 type finding struct {
 	Key               string   `json:"key"`
+	Kind              string   `json:"kind"`
+	Value             string   `json:"value,omitempty"`
 	Status            string   `json:"status"`
 	Verdict           string   `json:"verdict"`
 	Lines             []int    `json:"lines"`
@@ -207,7 +211,7 @@ func run(api string, files []string, workers int) report {
 				fr.Error = err.Error()
 			} else {
 				for _, f := range res.Findings {
-					if f.Status == "deprecated" {
+					if f.Status != "current" {
 						fr.Findings = append(fr.Findings, f)
 					}
 				}
@@ -232,7 +236,7 @@ func run(api string, files []string, workers int) report {
 			}
 			rep.Deprecated += len(f.Lines)
 			rep.ByVerdict[f.Verdict] += len(f.Lines)
-			rep.ByKey[f.Key] += len(f.Lines)
+			rep.ByKey[f.Kind+":"+f.Key] += len(f.Lines)
 		}
 		if len(fr.Findings) > 0 || fr.Error != "" {
 			rep.Files = append(rep.Files, fr)
@@ -315,7 +319,17 @@ func printText(w io.Writer, rep report) {
 			if to == "" {
 				to = "(" + f.ReplacementReason + ")"
 			}
-			fmt.Fprintf(tw, "%s:%s\t%s\t%s\t-> %s\n", fr.Path, joinInts(f.Lines), f.Verdict, f.Key, to)
+			if f.Replacement != "" && f.NeedsDecision {
+				to = f.Replacement + "  (check first: not a plain rename)"
+			}
+			name := f.Key
+			if f.Value != "" {
+				name = fmt.Sprintf("%s = %q", f.Key, f.Value)
+				if f.Replacement != "" {
+					to = fmt.Sprintf("%q", f.Replacement)
+				}
+			}
+			fmt.Fprintf(tw, "%s:%s\t%s\t%s\t%s\t-> %s\n", fr.Path, joinInts(f.Lines), f.Kind, f.Verdict, name, to)
 		}
 	}
 	tw.Flush()
