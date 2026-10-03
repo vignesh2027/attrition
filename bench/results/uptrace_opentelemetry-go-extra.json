@@ -1,7 +1,7 @@
 {
   "specRelease": "v1.44.0",
   "filesWalked": 56,
-  "filesScanned": 8,
+  "filesScanned": 12,
   "deprecatedUsages": 18,
   "deprecatedInComments": 1,
   "byVerdict": {
@@ -10,13 +10,13 @@
     "RENAMED": 15
   },
   "byKey": {
-    "code.filepath": 1,
-    "code.function": 2,
-    "code.lineno": 1,
-    "db.name": 2,
-    "db.sql.table": 1,
-    "db.statement": 2,
-    "db.system": 9
+    "attribute:code.filepath": 1,
+    "attribute:code.function": 2,
+    "attribute:code.lineno": 1,
+    "attribute:db.name": 2,
+    "attribute:db.sql.table": 1,
+    "attribute:db.statement": 2,
+    "attribute:db.system": 9
   },
   "files": [
     {
@@ -24,6 +24,7 @@
       "findings": [
         {
           "key": "db.name",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -33,7 +34,7 @@
             "constant"
           ],
           "replacement": "db.namespace",
-          "replacementReason": "The registry says renamed to db.namespace, but the migration guide says: \"Removed, integrated into new `db.namespace`. Capture value as-is; no case normalization.\". Check the value before swapping the key.",
+          "replacementReason": "The registry says renamed to db.namespace, but the migration guide says: \"Removed; integrated into new `db.namespace`. Capture value as provided by the application, no case normalization\". Check the value before swapping the key.",
           "needsDecision": true,
           "deprecatedIn": "v1.26.0",
           "spanKind": "",
@@ -46,6 +47,7 @@
       "findings": [
         {
           "key": "db.statement",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -63,6 +65,7 @@
         },
         {
           "key": "db.sql.table",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "CONDITIONAL",
           "lines": [
@@ -80,6 +83,7 @@
         },
         {
           "key": "db.system",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -108,6 +112,7 @@
       "findings": [
         {
           "key": "code.function",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MERGED_INTO",
           "lines": [
@@ -130,6 +135,7 @@
       "findings": [
         {
           "key": "db.system",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -152,6 +158,7 @@
       "findings": [
         {
           "key": "db.statement",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -169,6 +176,7 @@
         },
         {
           "key": "db.system",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -186,6 +194,7 @@
         },
         {
           "key": "db.system",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -203,6 +212,7 @@
         },
         {
           "key": "db.name",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -212,7 +222,7 @@
             "constant"
           ],
           "replacement": "db.namespace",
-          "replacementReason": "The registry says renamed to db.namespace, but the migration guide says: \"Removed, integrated into new `db.namespace`. Capture value as-is; no case normalization.\". Check the value before swapping the key.",
+          "replacementReason": "The registry says renamed to db.namespace, but the migration guide says: \"Removed; integrated into new `db.namespace`. Capture value as provided by the application, no case normalization\". Check the value before swapping the key.",
           "needsDecision": true,
           "deprecatedIn": "v1.26.0",
           "spanKind": "client",
@@ -225,6 +235,7 @@
       "findings": [
         {
           "key": "db.system",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -247,6 +258,7 @@
       "findings": [
         {
           "key": "code.function",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MERGED_INTO",
           "lines": [
@@ -264,6 +276,7 @@
         },
         {
           "key": "code.filepath",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -281,6 +294,7 @@
         },
         {
           "key": "code.lineno",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [

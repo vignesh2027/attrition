@@ -1,7 +1,7 @@
 {
   "specRelease": "v1.44.0",
   "filesWalked": 323,
-  "filesScanned": 19,
+  "filesScanned": 47,
   "deprecatedUsages": 6,
   "deprecatedInComments": 0,
   "byVerdict": {
@@ -11,12 +11,12 @@
     "USE_SIGNAL_FIELD": 1
   },
   "byKey": {
-    "event.name": 1,
-    "gen_ai.input.messages": 1,
-    "http.status_code": 1,
-    "messaging.kafka.destination.partition": 1,
-    "messaging.kafka.message.offset": 1,
-    "peer.service": 1
+    "attribute:event.name": 1,
+    "attribute:gen_ai.input.messages": 1,
+    "attribute:http.status_code": 1,
+    "attribute:messaging.kafka.destination.partition": 1,
+    "attribute:messaging.kafka.message.offset": 1,
+    "attribute:peer.service": 1
   },
   "files": [
     {
@@ -24,6 +24,7 @@
       "findings": [
         {
           "key": "messaging.kafka.message.offset",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -41,6 +42,7 @@
         },
         {
           "key": "peer.service",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -58,6 +60,7 @@
         },
         {
           "key": "messaging.kafka.destination.partition",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MERGED_INTO",
           "lines": [
@@ -80,6 +83,7 @@
       "findings": [
         {
           "key": "event.name",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "USE_SIGNAL_FIELD",
           "lines": [
@@ -102,6 +106,7 @@
       "findings": [
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -124,6 +129,7 @@
       "findings": [
         {
           "key": "gen_ai.input.messages",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [

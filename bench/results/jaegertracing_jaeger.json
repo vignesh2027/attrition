@@ -1,7 +1,7 @@
 {
   "specRelease": "v1.44.0",
   "filesWalked": 754,
-  "filesScanned": 59,
+  "filesScanned": 104,
   "deprecatedUsages": 67,
   "deprecatedInComments": 1,
   "byVerdict": {
@@ -9,20 +9,20 @@
     "RENAMED": 52
   },
   "byKey": {
-    "db.system": 1,
-    "deployment.environment": 4,
-    "gen_ai.agent.name": 1,
-    "gen_ai.agent.version": 1,
-    "gen_ai.conversation.id": 1,
-    "gen_ai.operation.name": 2,
-    "gen_ai.tool.call.arguments": 3,
-    "gen_ai.tool.call.result": 4,
-    "gen_ai.tool.name": 1,
-    "http.method": 6,
-    "http.status_code": 40,
-    "mcp.method.name": 1,
-    "mcp.session.id": 1,
-    "peer.service": 1
+    "attribute:db.system": 1,
+    "attribute:deployment.environment": 4,
+    "attribute:gen_ai.agent.name": 1,
+    "attribute:gen_ai.agent.version": 1,
+    "attribute:gen_ai.conversation.id": 1,
+    "attribute:gen_ai.operation.name": 2,
+    "attribute:gen_ai.tool.call.arguments": 3,
+    "attribute:gen_ai.tool.call.result": 4,
+    "attribute:gen_ai.tool.name": 1,
+    "attribute:http.method": 6,
+    "attribute:http.status_code": 40,
+    "attribute:mcp.method.name": 1,
+    "attribute:mcp.session.id": 1,
+    "attribute:peer.service": 1
   },
   "files": [
     {
@@ -30,6 +30,7 @@
       "findings": [
         {
           "key": "http.method",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -47,6 +48,7 @@
         },
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -81,6 +83,7 @@
       "findings": [
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -103,6 +106,7 @@
       "findings": [
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -125,6 +129,7 @@
         },
         {
           "key": "deployment.environment",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -190,6 +195,7 @@
       "findings": [
         {
           "key": "db.system",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -207,6 +213,7 @@
         },
         {
           "key": "gen_ai.operation.name",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [
@@ -225,6 +232,7 @@
         },
         {
           "key": "mcp.method.name",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [
@@ -242,6 +250,7 @@
         },
         {
           "key": "mcp.session.id",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [
@@ -259,6 +268,7 @@
         },
         {
           "key": "gen_ai.tool.name",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [
@@ -276,6 +286,7 @@
         },
         {
           "key": "gen_ai.tool.call.arguments",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [
@@ -293,6 +304,7 @@
         },
         {
           "key": "gen_ai.tool.call.result",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [
@@ -310,6 +322,7 @@
         },
         {
           "key": "gen_ai.agent.name",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [
@@ -327,6 +340,7 @@
         },
         {
           "key": "gen_ai.agent.version",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [
@@ -344,6 +358,7 @@
         },
         {
           "key": "gen_ai.conversation.id",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [
@@ -373,6 +388,7 @@
       "findings": [
         {
           "key": "peer.service",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -402,6 +418,7 @@
       "findings": [
         {
           "key": "gen_ai.tool.call.arguments",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [
@@ -420,6 +437,7 @@
         },
         {
           "key": "gen_ai.tool.call.result",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MOVED_OUT",
           "lines": [
@@ -444,6 +462,7 @@
       "findings": [
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -473,6 +492,7 @@
       "findings": [
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -502,6 +522,7 @@
       "findings": [
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -531,6 +552,7 @@
       "findings": [
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -566,6 +588,7 @@
       "findings": [
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -613,6 +636,7 @@
       "findings": [
         {
           "key": "deployment.environment",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -631,6 +655,7 @@
         },
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -654,6 +679,7 @@
         },
         {
           "key": "http.method",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -752,6 +778,7 @@
       "findings": [
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -835,6 +862,7 @@
       "findings": [
         {
           "key": "http.status_code",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [

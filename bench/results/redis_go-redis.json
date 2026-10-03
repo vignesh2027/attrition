@@ -1,20 +1,28 @@
 {
   "specRelease": "v1.44.0",
   "filesWalked": 174,
-  "filesScanned": 6,
-  "deprecatedUsages": 9,
+  "filesScanned": 12,
+  "deprecatedUsages": 16,
   "deprecatedInComments": 0,
   "byVerdict": {
     "MERGED_INTO": 2,
-    "RENAMED": 6,
+    "RENAMED": 11,
+    "REPLACED": 2,
     "SPLIT": 1
   },
   "byKey": {
-    "code.function": 2,
-    "db.connection_string": 1,
-    "db.statement": 2,
-    "db.system": 3,
-    "pool.name": 1
+    "attribute:code.function": 2,
+    "attribute:db.connection_string": 1,
+    "attribute:db.statement": 2,
+    "attribute:db.system": 3,
+    "attribute:pool.name": 1,
+    "metric:db.client.connections.create_time": 1,
+    "metric:db.client.connections.idle.max": 1,
+    "metric:db.client.connections.idle.min": 1,
+    "metric:db.client.connections.max": 1,
+    "metric:db.client.connections.timeouts": 1,
+    "metric:db.client.connections.usage": 1,
+    "metric:db.client.connections.use_time": 1
   },
   "files": [
     {
@@ -22,6 +30,7 @@
       "findings": [
         {
           "key": "db.system",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -57,6 +66,7 @@
       "findings": [
         {
           "key": "db.system",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -79,6 +89,7 @@
       "findings": [
         {
           "key": "pool.name",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
@@ -93,6 +104,132 @@
           "deprecatedIn": "v1.26.0",
           "spanKind": "",
           "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/registry-deprecated.yaml#L631"
+        },
+        {
+          "key": "db.client.connections.idle.max",
+          "kind": "metric",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            166
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "db.client.connection.idle.max",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/metrics-deprecated.yaml#L21"
+        },
+        {
+          "key": "db.client.connections.idle.min",
+          "kind": "metric",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            174
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "db.client.connection.idle.min",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/metrics-deprecated.yaml#L38"
+        },
+        {
+          "key": "db.client.connections.max",
+          "kind": "metric",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            182
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "db.client.connection.max",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/metrics-deprecated.yaml#L55"
+        },
+        {
+          "key": "db.client.connections.usage",
+          "kind": "metric",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            190
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "db.client.connection.count",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/metrics-deprecated.yaml#L2"
+        },
+        {
+          "key": "db.client.connections.timeouts",
+          "kind": "metric",
+          "status": "deprecated",
+          "verdict": "RENAMED",
+          "lines": [
+            215
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "db.client.connection.timeouts",
+          "replacementReason": "The spec names one replacement.",
+          "needsDecision": false,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/metrics-deprecated.yaml#L89"
+        },
+        {
+          "key": "db.client.connections.create_time",
+          "kind": "metric",
+          "status": "deprecated",
+          "verdict": "REPLACED",
+          "lines": [
+            272
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "db.client.connection.create_time",
+          "replacementReason": "The name changes and so does the unit, from ms to s. Recorded values must be converted, not just renamed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/metrics-deprecated.yaml#L106"
+        },
+        {
+          "key": "db.client.connections.use_time",
+          "kind": "metric",
+          "status": "deprecated",
+          "verdict": "REPLACED",
+          "lines": [
+            281
+          ],
+          "forms": [
+            "string"
+          ],
+          "replacement": "db.client.connection.use_time",
+          "replacementReason": "The name changes and so does the unit, from ms to s. Recorded values must be converted, not just renamed.",
+          "needsDecision": true,
+          "deprecatedIn": "v1.26.0",
+          "spanKind": "",
+          "sourceUrl": "https://github.com/open-telemetry/semantic-conventions/blob/v1.44.0/model/db/deprecated/metrics-deprecated.yaml#L140"
         }
       ],
       "edits": [
@@ -100,6 +237,31 @@
           "line": 58,
           "from": "\"pool.name\"",
           "to": "\"db.client.connection.pool.name\""
+        },
+        {
+          "line": 166,
+          "from": "\"db.client.connections.idle.max\"",
+          "to": "\"db.client.connection.idle.max\""
+        },
+        {
+          "line": 174,
+          "from": "\"db.client.connections.idle.min\"",
+          "to": "\"db.client.connection.idle.min\""
+        },
+        {
+          "line": 182,
+          "from": "\"db.client.connections.max\"",
+          "to": "\"db.client.connection.max\""
+        },
+        {
+          "line": 190,
+          "from": "\"db.client.connections.usage\"",
+          "to": "\"db.client.connection.count\""
+        },
+        {
+          "line": 215,
+          "from": "\"db.client.connections.timeouts\"",
+          "to": "\"db.client.connection.timeouts\""
         }
       ]
     },
@@ -108,6 +270,7 @@
       "findings": [
         {
           "key": "db.connection_string",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "SPLIT",
           "lines": [
@@ -125,6 +288,7 @@
         },
         {
           "key": "code.function",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "MERGED_INTO",
           "lines": [
@@ -143,6 +307,7 @@
         },
         {
           "key": "db.statement",
+          "kind": "attribute",
           "status": "deprecated",
           "verdict": "RENAMED",
           "lines": [
