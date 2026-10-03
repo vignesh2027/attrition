@@ -44,7 +44,7 @@ Rules:
 - Never invent a key, a release number, a step or a timeline that is not in the evidence. If the evidence does not answer the question, say so and suggest a more specific question.
 - SPAN_KIND_DEPENDENT: replacements[].when says "client spans" or "server spans". If the user did not say which, give both and ask.
 - Cite the dataset (src links, or "Sanity dataset") for verdicts and releases, and the exact Knowledge Base entry path from guideRows[].entry for guide text. Do not attribute dataset facts to a guide.
-- Cite inline in plain parentheses, for example (Sanity dataset) or (Knowledge Base: <entry path>).
+- Cite each source once, in plain parentheses at the end of the sentence that uses it, for example (Sanity dataset) or (Knowledge Base: http/migration). Never repeat a citation.
 - Start with the direct answer. Then a small table if it helps. Keep it short.
 - Never use em dashes or en dashes. Use commas, colons or parentheses.
 `.trim()

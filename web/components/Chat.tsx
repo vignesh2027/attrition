@@ -3,6 +3,7 @@
 import {useChat} from '@ai-sdk/react'
 import {useState} from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 const STARTERS = [
   'Which attributes changed for database spans, and in which release?',
@@ -25,7 +26,7 @@ export function Chat({code}: {code: string}) {
     <section className="panel chat">
       <div className="panel-head">
         <span>Ask the agent</span>
-        <span className="muted">answers from Sanity Context: the attribute dataset and the migration guide Knowledge Base</span>
+        <span className="muted">answers from Sanity Context: the semantic conventions dataset and the migration guide Knowledge Base</span>
       </div>
       <div className="chat-log">
         {messages.length === 0 && (
@@ -50,7 +51,7 @@ export function Chat({code}: {code: string}) {
                   </p>
                 ) : (
                   <div key={i} className="md">
-                    <ReactMarkdown>{p.text}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{p.text}</ReactMarkdown>
                   </div>
                 )
               }

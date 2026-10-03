@@ -75,7 +75,7 @@ export function Attrition({samples}: {samples: Sample[]}) {
           <span>Attrition</span>
           <span className="brand-sub">OpenTelemetry semantic convention checker</span>
         </div>
-        <h1>Find the OpenTelemetry attribute names the spec already retired.</h1>
+        <h1>Find the OpenTelemetry names the spec already retired.</h1>
         <p className="lede">
           Paste instrumentation code. Every attribute key, metric name, event name and semconv constant is checked against{' '}
           <strong>1,563 names</strong> from 26 releases of the semantic conventions, stored as structured content in Sanity and read through
