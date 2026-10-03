@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}
+body{margin:0;width:1400px;height:720px;background:#0f1729;color:#e8ecf4;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{position:relative;width:100%;height:100%;background:radial-gradient(900px 500px at 100% 110%,rgba(245,168,0,.14),transparent 60%),radial-gradient(700px 400px at -10% -20%,rgba(46,144,250,.14),transparent 60%)}
+h1{position:absolute;left:56px;top:34px;margin:0;font-size:30px;letter-spacing:-.015em}
+.sub{position:absolute;left:56px;top:78px;color:#8f99ad;font-size:16px}
+.label{position:absolute;top:130px;font:600 12px ui-monospace,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase;color:#8f99ad}
+.box{position:absolute;width:250px;height:108px;border:1px solid #2a3550;background:#151f36;border-radius:14px;padding:13px 16px;overflow:hidden}
+.box b{display:block;font-size:15.5px;margin-bottom:5px}
+.box span{color:#a9b3c7;font-size:13px;line-height:1.42;display:block}
+.box code{font:12px ui-monospace,Menlo,monospace;color:#f5c45b}
+.sanity{border-color:#f5a800;background:#1c2335}
+.kb{border-color:#2e90fa}
+.out{border-color:#3fb37f}
+svg{position:absolute;inset:0}
+</style></head><body><div class="wrap">
+<h1>How Attrition works</h1>
+<div class="sub">Verdicts come from structured data. Guidance comes from the Knowledge Base. The model never decides what replaced what.</div>
+<div class="label" style="left:56px">Sources</div><div class="label" style="left:400px">Sanity</div><div class="label" style="left:744px">Sanity Context MCP</div><div class="label" style="left:1088px">Clients</div><svg viewBox="0 0 1400 720"><defs><marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#f5a800"/></marker></defs>
+<g stroke="#f5a800" stroke-width="2" fill="none" opacity=".9"><path d="M994 214 L1040 214"/><path d="M994 346 L1040 346"/><path d="M650 478 L1040 478"/><path d="M1040 214 L1040 610"/></g>
+<g stroke="#f5a800" stroke-width="2" fill="none" marker-end="url(#a)" opacity=".9"><path d="M306 214 L396 214"/><path d="M306 346 L396 346"/><path d="M306 478 L396 478"/><path d="M650 214 L740 214"/><path d="M650 346 L740 346"/><path d="M525 268 L525 288"/><path d="M1040 214 L1084 214"/><path d="M1040 346 L1084 346"/><path d="M1040 478 L1084 478"/><path d="M1040 610 L1084 610"/></g></svg><div class="box " style="left:56px;top:160px"><b>26 spec releases</b><span>Every tagged release of the semantic conventions, v1.21.0 to v1.44.0</span></div><div class="box " style="left:56px;top:292px"><b>Migration guides</b><span>Official HTTP, database, RPC and code guides, plus two older spec pages</span></div><div class="box " style="left:56px;top:424px"><b>Your code</b><span>Go, TypeScript, Python, Java: keys, constants, values, span kinds</span></div><div class="box sanity" style="left:400px;top:160px"><b>Dataset: 1,654 documents</b><span>Attributes, metrics, events. Verdicts computed in code, 50 silent drops found</span></div><div class="box kb" style="left:400px;top:292px"><b>Knowledge Base: 144 sources</b><span>137 retired names plus the guides. 4 conflicts resolved by a person</span></div><div class="box " style="left:400px;top:424px"><b>Extractor</b><span>Finds names, values and the span kind in effect. Deterministic</span></div><div class="box sanity" style="left:744px;top:160px"><b>MCP endpoint: attrition</b><span><code>groq_query</code> reads verdicts, replacements, units and spec lines</span></div><div class="box kb" style="left:744px;top:292px"><b>MCP endpoint: attrition-kb</b><span><code>knowledge_base_search</code> then <code>knowledge_base_read</code></span></div><div class="box out" style="left:1088px;top:160px"><b>Web scanner and chat</b><span>Findings, a safe patch, every Context call shown</span></div><div class="box out" style="left:1088px;top:292px"><b>Go CLI and GitHub Action</b><span>Whole repositories, CI gate, safe <code>-fix</code></span></div><div class="box out" style="left:1088px;top:424px"><b>Rust offline scanner</b><span>Public dataset snapshot, pre-commit hooks</span></div><div class="box out" style="left:1088px;top:556px"><b>Python agent</b><span>Official MCP SDK, model-driven tool calls</span></div>
+</div></body></html>
