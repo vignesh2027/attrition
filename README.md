@@ -116,7 +116,7 @@ go-redis's `redisotel` package registers the old `db.client.connections.*` pool 
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: vignesh2027/attrition@main
+- uses: vignesh2027/attrition@v1
   with:
     path: services/
     fail: "true"
