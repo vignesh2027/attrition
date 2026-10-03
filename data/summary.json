@@ -1,8 +1,10 @@
 {
   "latest": "v1.44.0",
   "releases": 26,
+  "documents": 1654,
   "attributes": 940,
   "deprecated": 206,
+  "droppedAttributes": 16,
   "verdictCounts": {
     "RENAMED": 97,
     "MERGED_INTO": 4,
@@ -12,8 +14,34 @@
     "REPLACED": 15,
     "USE_SIGNAL_FIELD": 2,
     "MOVED_OUT": 58,
-    "SPAN_KIND_DEPENDENT": 3
+    "SPAN_KIND_DEPENDENT": 3,
+    "DROPPED": 16
   },
+  "metrics": {
+    "total": 571,
+    "deprecated": 97,
+    "dropped": 30,
+    "verdicts": {
+      "DROPPED": 30,
+      "RENAMED": 71,
+      "REPLACED": 5,
+      "REMOVED": 10,
+      "MOVED_OUT": 11
+    }
+  },
+  "events": {
+    "total": 36,
+    "deprecated": 10,
+    "dropped": 4,
+    "verdicts": {
+      "DROPPED": 4,
+      "RENAMED": 1,
+      "REMOVED": 1,
+      "REPLACED": 5,
+      "MOVED_OUT": 3
+    }
+  },
+  "deprecatedEnumValues": 24,
   "renameChains": 0,
   "namespaces": 90
 }
