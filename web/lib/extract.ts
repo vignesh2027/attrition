@@ -1,19 +1,26 @@
-// Deterministic extraction of OpenTelemetry attribute usage from source code.
+// Deterministic extraction of OpenTelemetry names from source code.
 //
-// Nothing here calls a model. Given the list of attribute keys that exist in
-// the spec (fetched from Sanity), it finds:
+// Nothing here calls a model. Given every attribute, metric and event name the
+// spec has ever defined (fetched from Sanity), it finds:
 //   - string literals that are exact attribute keys ("db.system")
+//   - metric names ("http.server.duration") and event names ("gen_ai.choice")
+//   - deprecated enum values passed with an attribute (cloud.platform = "azure_vm")
 //   - semconv constants from the Go, JS, Java and Python SDKs (DBSystemKey,
 //     ATTR_DB_SYSTEM, SEMATTRS_DB_SYSTEM, DbIncubatingAttributes.DB_SYSTEM)
 //   - the span kind in effect near each usage, when the code states one
 //   - the semconv version the file pins, when it imports a versioned package
 
-export type KeyInfo = {key: string; members?: string[]}
+export type Kind = 'attribute' | 'metric' | 'event'
+
+export type KeyInfo = {key: string; kind?: Kind; members?: string[]; deprecatedValues?: string[]}
 
 export type SpanKind = 'client' | 'server' | 'producer' | 'consumer' | 'internal'
 
 export type Usage = {
   key: string
+  kind: Kind
+  // Set when the finding is about an enum value of the attribute, not its key.
+  value?: string
   line: number
   column: number
   text: string
@@ -35,15 +42,25 @@ const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 
 export function buildIndex(keys: KeyInfo[]) {
   const byKey = new Map<string, KeyInfo>()
+  const metrics = new Set<string>()
+  const events = new Set<string>()
   const byNorm = new Map<string, string[]>()
   const namespaces = new Set<string>()
   for (const k of keys) {
+    if (k.kind === 'metric') {
+      metrics.add(k.key)
+      continue
+    }
+    if (k.kind === 'event') {
+      events.add(k.key)
+      continue
+    }
     namespaces.add(k.key.split('.')[0])
     byKey.set(k.key, k)
     const n = norm(k.key)
     byNorm.set(n, [...(byNorm.get(n) ?? []), k.key])
   }
-  return {byKey, byNorm, namespaces}
+  return {byKey, byNorm, namespaces, metrics, events}
 }
 
 export type KeyIndex = ReturnType<typeof buildIndex>
@@ -92,6 +109,11 @@ function nearestKind(marks: Array<{line: number; kind: SpanKind}>, line: number)
   return best
 }
 
+// Calls that create instruments or emit events. A name that is both an
+// attribute and a metric (a few k8s names are) is read by this context.
+const METRIC_CALL = /histogram|counter|gauge|meter|instrument|metric/i
+const EVENT_CALL = /event|emit|logrecord|log_record/i
+
 const ATTRIBUTE_CALL = /attribute|setAttribute|set_attribute|WithAttributes|putAttribute|SetTag|setTag/i
 
 const STRING_LITERAL = /(["'`])([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)\1/g
@@ -106,7 +128,7 @@ const CONSTANT_PATTERNS: Array<{rx: RegExp; strip: (s: string) => string}> = [
   {rx: /\bsemconv\.([A-Z][A-Za-z0-9]+)\b/g, strip: (s) => s.replace(/Key$/, '')},
 ]
 
-function resolveConstant(name: string, index: KeyIndex): {key: string; form: Usage['form']} | null {
+function resolveConstant(name: string, index: KeyIndex): {key: string; form: Usage['form']; value?: string} | null {
   const n = norm(name)
   const exact = index.byNorm.get(n)
   if (exact?.length === 1) return {key: exact[0], form: 'constant'}
@@ -116,7 +138,10 @@ function resolveConstant(name: string, index: KeyIndex): {key: string; form: Usa
     if (keys?.length !== 1) continue
     const rest = n.slice(cut)
     const info = index.byKey.get(keys[0])
-    if (info?.members?.some((m) => norm(m) === rest)) return {key: keys[0], form: 'enum-constant'}
+    const members = info?.members?.filter((m) => norm(m) === rest) ?? []
+    // Old and new values can share one constant name (azure_vm and azure.vm are
+    // both CloudPlatformAzureVM), so the value is only named when it is unique.
+    if (members.length) return {key: keys[0], form: 'enum-constant', value: members.length === 1 ? members[0] : undefined}
   }
   return null
 }
@@ -171,26 +196,50 @@ export function extract(code: string, index: KeyIndex): Extraction {
       const i = text.search(/\s(\/\/|#)\s/)
       return i >= 0 ? i : Infinity
     })()
-    const push = (key: string, column: number, raw: string, found: Usage['form']) => {
+    const push = (key: string, column: number, raw: string, found: Usage['form'], kindOf: Kind = 'attribute', value?: string) => {
       const form: Usage['form'] = column - 1 >= commentAt ? 'comment' : found
-      const id = `${line}:${column}:${key}`
+      const id = `${line}:${column}:${kindOf}:${key}:${value ?? ''}`
       if (seen.has(id)) return
       seen.add(id)
       const kind = nearestKind(marks, line)
-      usages.push({key, line, column, text: raw, form, spanKind: kind?.kind ?? null, spanKindLine: kind?.line ?? null})
+      usages.push({key, kind: kindOf, value, line, column, text: raw, form, spanKind: kind?.kind ?? null, spanKindLine: kind?.line ?? null})
     }
+    // A deprecated enum value is only reported next to its own attribute key.
+    const valueChecks: Array<{key: string; after: number}> = []
 
     if (imports.has(line)) return
     for (const m of text.matchAll(STRING_LITERAL)) {
-      if (index.byKey.has(m[2])) push(m[2], (m.index ?? 0) + 1, m[0], 'string')
-      else if (ATTRIBUTE_CALL.test(text) && index.namespaces.has(m[2].split('.')[0]) && !unknown.some((u) => u.key === m[2])) {
-        unknown.push({key: m[2], line, namespace: m[2].split('.')[0]})
+      const name = m[2]
+      const col = (m.index ?? 0) + 1
+      const isAttr = index.byKey.has(name)
+      const isMetric = index.metrics.has(name)
+      const isEvent = index.events.has(name)
+      if (isMetric && (!isAttr || METRIC_CALL.test(text))) push(name, col, m[0], 'string', 'metric')
+      else if (isEvent && (!isAttr || EVENT_CALL.test(text))) push(name, col, m[0], 'string', 'event')
+      else if (isAttr) {
+        push(name, col, m[0], 'string')
+        valueChecks.push({key: name, after: col})
+      } else if (ATTRIBUTE_CALL.test(text) && index.namespaces.has(name.split('.')[0]) && !unknown.some((u) => u.key === name)) {
+        unknown.push({key: name, line, namespace: name.split('.')[0]})
       }
     }
     for (const {rx, strip} of CONSTANT_PATTERNS) {
       for (const m of text.matchAll(rx)) {
         const hit = resolveConstant(strip(m[1]), index)
-        if (hit) push(hit.key, (m.index ?? 0) + 1, m[0], hit.form)
+        if (!hit) continue
+        const col = (m.index ?? 0) + 1
+        push(hit.key, col, m[0], hit.form)
+        if (hit.value && index.byKey.get(hit.key)?.deprecatedValues?.includes(hit.value)) {
+          push(hit.key, col, m[0], hit.form, 'attribute', hit.value)
+        }
+        if (hit.form === 'constant') valueChecks.push({key: hit.key, after: col})
+      }
+    }
+    for (const {key, after} of valueChecks) {
+      const dep = index.byKey.get(key)?.deprecatedValues
+      if (!dep?.length) continue
+      for (const m of text.slice(after).matchAll(/(["'`])([^"'`\s]{1,64})\1/g)) {
+        if (dep.includes(m[2])) push(key, after + (m.index ?? 0), m[0], 'string', 'attribute', m[2])
       }
     }
   })

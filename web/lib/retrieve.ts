@@ -67,20 +67,23 @@ export async function retrieve(question: string): Promise<Evidence> {
 
   if (keys.length) {
     evidence.attributes = await groq<unknown[]>(
-      `*[_type == "attribute" && key in [${keys.map(groqString).join(', ')}]]{
-        key, status, stability, introducedIn, "src": source.url,
-        deprecation{verdict, note, deprecatedIn, "movedTo": movedTo.url, "replacements": replacements[]{key, when}}
+      `*[_type in ["attribute", "metric", "event"] && key in [${keys.map(groqString).join(', ')}]]{
+        "kind": _type, key, status, stability, unit, introducedIn, lastSeenIn, specErratum, "src": source.url,
+        "deprecatedValues": members[defined(deprecated)]{value, deprecated, replacementValue},
+        deprecation{verdict, note, deprecatedIn, unitChange, valueChanges, "movedTo": movedTo.url, "replacements": replacements[]{key, when}}
       }`,
       trace,
     )
   }
 
+  const wantMetrics = /\bmetrics?\b|\bhistogram|\bcounter|\bgauge|\bunit/i.test(prose)
   const namespaces = [...new Set(NAMESPACE_WORDS.filter(([rx]) => rx.test(prose)).map(([, ns]) => ns))].slice(0, 2)
   if (!keys.length) {
     for (const ns of namespaces) {
       const deprecated = await groq<unknown[]>(
-        `*[_type == "attribute" && status == "deprecated" && string::startsWith(key, ${groqString(`${ns}.`)})] | order(deprecation.deprecatedIn asc){
-          key, "v": deprecation.verdict, "in": deprecation.deprecatedIn, "to": deprecation.replacements[].key, "movedTo": deprecation.movedTo.url
+        `*[_type in ${wantMetrics ? '["metric"]' : '["attribute"]'} && status != "current" && string::startsWith(key, ${groqString(`${ns}.`)})] | order(deprecation.deprecatedIn asc){
+          "kind": _type, key, "v": deprecation.verdict, "in": deprecation.deprecatedIn, "lastSeenIn": lastSeenIn, "to": deprecation.replacements[].key,
+          "unit": deprecation.unitChange, "movedTo": deprecation.movedTo.url
         }[0...40]`,
         trace,
       )

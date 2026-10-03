@@ -69,3 +69,43 @@ test('usages inside comments are marked, not treated as code', () => {
     ],
   )
 })
+
+test('metric and event names are found and kept apart from attributes', () => {
+  const code = [
+    "const d = meter.createHistogram('http.server.duration', {unit: 'ms'})",
+    "logger.emit({eventName: 'gen_ai.choice'})",
+    "span.setAttribute('http.method', 'GET')",
+  ].join('\n')
+  const got = extract(code, index).usages.map((u) => [u.line, u.key, u.kind])
+  assert.deepEqual(got, [
+    [1, 'http.server.duration', 'metric'],
+    [2, 'gen_ai.choice', 'event'],
+    [3, 'http.method', 'attribute'],
+  ])
+})
+
+test('a name that is both an attribute and a metric is read by its call', () => {
+  const asMetric = extract("meter.createGauge('k8s.pod.status.phase')", index).usages
+  const asAttr = extract("span.setAttribute('k8s.pod.status.phase', 'Running')", index).usages
+  assert.equal(asMetric[0].kind, 'metric')
+  assert.equal(asAttr[0].kind, 'attribute')
+})
+
+test('a deprecated enum value is reported next to its own key only, and never when the constant is ambiguous', () => {
+  const got = extract(
+    [
+      'resource.set("cloud.platform", "azure_vm")',
+      'x.set("cloud.provider", "azure_vm")',
+      'y := semconv.CloudPlatformAzureVM',
+      'z := semconv.MessagingOperationTypePublish',
+    ].join('\n'),
+    index,
+  ).usages.filter((u) => u.value)
+  assert.deepEqual(
+    got.map((u) => [u.line, u.key, u.value]),
+    [
+      [1, 'cloud.platform', 'azure_vm'],
+      [4, 'messaging.operation.type', 'publish'],
+    ],
+  )
+})

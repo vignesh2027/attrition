@@ -44,11 +44,32 @@ const cells = (row: string) =>
 export function guidanceFor(key: string, entry: string, text: string): Guidance | null {
   const needle = `\`${key}\``
   let section: string | null = null
-  for (const line of text.split('\n')) {
+  const lines = text.split('\n')
+  for (const [i, line] of lines.entries()) {
     const heading = line.match(/^#{2,4}\s+(.+)$/)
     if (heading) section = heading[1].trim()
+    // Heading layout: "### `old` → `new`", followed by bullets such as "- **Unit**: `ms` → `s`".
+    if (heading && heading[1].trim().startsWith(needle) && heading[1].includes('→')) {
+      const target = heading[1].split('→')[1].replace(/`/g, '').trim()
+      const unit = lines
+        .slice(i + 1, i + 6)
+        .map((l) => l.match(/\*\*Unit\*\*:\s*`([^`]+)`\s*→\s*`([^`]+)`/))
+        .find(Boolean)
+      return {entry, section: 'Metrics', change: `${key} → ${target}`, comment: unit ? `Unit changes from ${unit[1]} to ${unit[2]}` : null}
+    }
     if (!line.trim().startsWith('|') || !line.includes(needle)) continue
     const [change, ...rest] = cells(line)
+    // Metric tables: "| Name | `old` | `new` |", with a "| Unit | ... |" row nearby.
+    if (/^name$/i.test(change) && rest[0] === needle && rest[1]) {
+      const unit = text.split('\n').find((l, _, all) => /^\|\s*Unit\s*\|/i.test(l) && Math.abs(all.indexOf(l) - all.indexOf(line)) <= 3)
+      const u = unit ? cells(unit) : null
+      return {
+        entry,
+        section,
+        change: `${key} → ${rest[1].replace(/`/g, '')}`,
+        comment: u && u[1] !== u[2] ? `Unit changes from ${u[1].replace(/`/g, '')} to ${u[2].replace(/`/g, '')}` : null,
+      }
+    }
     // Only rows where the key is the subject of the change, not a mention in a comment.
     if (!change.startsWith(needle)) continue
     // Two table layouts occur: "old -> new | comment" and "old | new | comment".

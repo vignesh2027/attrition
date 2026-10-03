@@ -19,14 +19,14 @@ export function samples(): Sample[] {
       id: 'node',
       label: 'Checkout service',
       language: 'TypeScript',
-      origin: 'Written for this demo: one file that is both an HTTP server and an HTTP client.',
+      origin: 'Written for this demo: one file that is both an HTTP server and an HTTP client, with request-duration metrics.',
       code: read('node-checkout.ts'),
     },
     {
       id: 'python',
       label: 'Orders and an LLM call',
       language: 'Python',
-      origin: 'Written for this demo: a database span and a GenAI span using names from several spec eras.',
+      origin: 'Written for this demo: a database span, a GenAI span, a pool metric, a chat event and a cloud resource, using names from several spec eras.',
       code: read('python-orders.py'),
     },
   ]

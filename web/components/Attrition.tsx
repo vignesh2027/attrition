@@ -9,7 +9,7 @@ const LINKS = {
   repo: 'https://github.com/vignesh2027/attrition',
   studio: 'https://attrition.sanity.studio',
   dataset:
-    'https://y9raau23.apicdn.sanity.io/v2025-02-19/data/query/production?query=*%5B_type%3D%3D%22attribute%22%26%26status%3D%3D%22deprecated%22%5D%7Bkey%2Cdeprecation%7D%5B0...20%5D',
+    'https://y9raau23.apicdn.sanity.io/v2025-02-19/data/query/production?query=*%5B_type%20in%20%5B%22attribute%22%2C%22metric%22%2C%22event%22%5D%20%26%26%20status%20!%3D%20%22current%22%5D%7B_type%2Ckey%2Cstatus%2Cdeprecation%7D%5B0...25%5D',
   spec: 'https://github.com/open-telemetry/semantic-conventions',
 }
 
@@ -23,6 +23,9 @@ const VERDICT_LABEL: Record<string, string> = {
   USE_SIGNAL_FIELD: 'Use a signal field',
   MOVED_OUT: 'Moved out',
   REMOVED: 'Removed',
+  DROPPED: 'Dropped silently',
+  VALUE_RENAMED: 'Value renamed',
+  VALUE_REMOVED: 'Value deprecated',
   NEEDS_REVIEW: 'Needs review',
   CURRENT: 'Current',
 }
@@ -62,7 +65,7 @@ export function Attrition({samples}: {samples: Sample[]}) {
   }
 
   const lineCount = useMemo(() => code.split('\n').length, [code])
-  const flagged = useMemo(() => new Set(result?.findings.filter((f) => f.status === 'deprecated').flatMap((f) => f.lines)), [result])
+  const flagged = useMemo(() => new Set(result?.findings.filter((f) => f.status !== 'current').flatMap((f) => f.lines)), [result])
 
   return (
     <main className="wrap">
@@ -74,9 +77,9 @@ export function Attrition({samples}: {samples: Sample[]}) {
         </div>
         <h1>Find the OpenTelemetry attribute names the spec already retired.</h1>
         <p className="lede">
-          Paste instrumentation code. Every attribute key and semconv constant is checked against all {''}
-          <strong>940 attributes</strong> of the semantic conventions, stored as structured content in Sanity and read through Sanity
-          Context. You get the verdict, the replacement for your span kind, the release that deprecated it, the spec line that says so, and a
+          Paste instrumentation code. Every attribute key, metric name, event name and semconv constant is checked against{' '}
+          <strong>1,563 names</strong> from 26 releases of the semantic conventions, stored as structured content in Sanity and read through
+          Sanity Context. You get the verdict, the replacement for your span kind, the release that retired it, the spec line that says so, and a
           patch.
         </p>
         <nav className="links">
@@ -136,7 +139,7 @@ export function Attrition({samples}: {samples: Sample[]}) {
           </div>
           <div className="actions">
             <button className="primary" onClick={() => run()} disabled={busy || !code.trim()}>
-              {busy ? 'Checking against Sanity...' : 'Check attributes'}
+              {busy ? 'Checking against Sanity...' : 'Check names'}
             </button>
             {elapsed !== null && result && <span className="muted">{elapsed} ms, {result.trace.length} Context calls</span>}
           </div>
@@ -169,26 +172,28 @@ export function Attrition({samples}: {samples: Sample[]}) {
 function Empty({busy}: {busy: boolean}) {
   return (
     <div className="empty">
-      <p>{busy ? 'Reading the spec from Sanity Context...' : 'Pick a sample or paste code, then press Check attributes.'}</p>
+      <p>{busy ? 'Reading the spec from Sanity Context...' : 'Pick a sample or paste code, then press Check names.'}</p>
       <ul>
         <li>Finds string keys like <code>&quot;db.system&quot;</code></li>
         <li>Resolves SDK constants: <code>SEMATTRS_HTTP_METHOD</code>, <code>semconv.DBSystemKey</code>, <code>SpanAttributes.DB_STATEMENT</code></li>
         <li>Reads the span kind in your code, because <code>net.peer.name</code> has two different replacements</li>
+        <li>Checks metric and event names too, including ones like <code>http.server.duration</code> that left the spec with no deprecation entry</li>
+        <li>Catches retired enum values, such as <code>cloud.platform = &quot;azure_vm&quot;</code></li>
       </ul>
     </div>
   )
 }
 
 function Results({result}: {result: ScanResult}) {
-  const deprecated = result.findings.filter((f) => f.status === 'deprecated')
+  const deprecated = result.findings.filter((f) => f.status !== 'current')
   const current = result.findings.filter((f) => f.status === 'current')
   const [copied, setCopied] = useState(false)
 
   return (
     <div className="results-body">
       <div className="stats">
-        <Stat n={result.summary.usages} label="attribute usages" />
-        <Stat n={result.summary.deprecated} label="deprecated" tone="warn" />
+        <Stat n={result.summary.usages} label="names found" />
+        <Stat n={result.summary.deprecated} label="retired" tone="warn" />
         <Stat n={result.summary.autoFixable} label="one clear replacement" tone="ok" />
         <Stat n={result.summary.needDecision} label="need a decision" />
       </div>
@@ -337,12 +342,20 @@ function FindingCard({f, pinned}: {f: Finding; pinned?: string}) {
   return (
     <li className={`finding v-${f.verdict}`}>
       <div className="finding-head">
-        <code className="old">{f.key}</code>
+        {f.kind !== 'attribute' && <span className={`kind kind-${f.kind}`}>{f.kind}</span>}
+        {f.value && <span className="kind kind-value">value</span>}
+        {f.value ? (
+          <code>
+            {f.key} = <span className="old">&quot;{f.value}&quot;</span>
+          </code>
+        ) : (
+          <code className="old">{f.key}</code>
+        )}
         <span className="arrow" aria-hidden>
           →
         </span>
         {f.replacement ? (
-          <code className="new">{f.replacement}</code>
+          <code className="new">{f.value ? `"${f.replacement}"` : f.replacement}</code>
         ) : (
           <span className="open">{f.verdict === 'REMOVED' ? 'delete it' : 'your call'}</span>
         )}
@@ -393,7 +406,21 @@ function FindingCard({f, pinned}: {f: Finding; pinned?: string}) {
             </dd>
           </div>
         )}
-        {f.deprecatedIn && (
+        {f.unitChange && (
+          <div>
+            <dt>Unit</dt>
+            <dd className="warn-text">
+              {f.unitChange.from} → {f.unitChange.to}
+            </dd>
+          </div>
+        )}
+        {f.lastSeenIn && (
+          <div>
+            <dt>Last defined in</dt>
+            <dd>{f.lastSeenIn}</dd>
+          </div>
+        )}
+        {f.deprecatedIn && f.verdict !== 'DROPPED' && (
           <div>
             <dt>Deprecated in</dt>
             <dd>
@@ -418,6 +445,11 @@ function FindingCard({f, pinned}: {f: Finding; pinned?: string}) {
           <Inline text={f.note} />
         </p>
       )}
+      {f.specErratum && (
+        <p className="note">
+          <strong>Spec erratum.</strong> {f.specErratum}
+        </p>
+      )}
       {f.guidance && (
         <div className="guide">
           <span className="kb">Knowledge Base</span>
@@ -429,6 +461,9 @@ function FindingCard({f, pinned}: {f: Finding; pinned?: string}) {
               </>
             ) : (
               '. No extra behaviour change listed.'
+            )}
+            {f.verdict === 'DROPPED' && (
+              <strong className="block">The registry has no entry for this name at all. This answer comes only from the Knowledge Base.</strong>
             )}
             {f.guidance.disagreesWithRegistry && (
               <strong className="block warn-text">The registry and the migration guide disagree here, so this key is left out of the patch.</strong>

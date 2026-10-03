@@ -5,7 +5,7 @@
 import 'server-only'
 import {groq, groqString, kbPaths, kbRead, type TraceEntry} from './context'
 import {guideFor, guidanceFor, optInHint, type Guidance} from './guidance'
-import {buildIndex, extract, type KeyIndex, type SpanKind, type Usage} from './extract'
+import {buildIndex, extract, type KeyIndex, type Kind, type SpanKind, type Usage} from './extract'
 import {buildPatch, type Edit} from './patch'
 
 export type Verdict =
@@ -18,17 +18,26 @@ export type Verdict =
   | 'USE_SIGNAL_FIELD'
   | 'MOVED_OUT'
   | 'REMOVED'
+  | 'DROPPED'
+  | 'VALUE_RENAMED'
+  | 'VALUE_REMOVED'
   | 'NEEDS_REVIEW'
 
 type AttributeDoc = {
   _id: string
+  _type: Kind
   key: string
-  status: 'current' | 'deprecated'
+  status: 'current' | 'deprecated' | 'dropped'
   stability: string
   brief?: string
   introducedIn?: string
+  lastSeenIn?: string
+  unit?: string
+  specErratum?: string
+  deprecatedMembers?: Array<{value: string; deprecated: string; replacementValue?: string}>
   source: {url: string; release: string}
   deprecation?: {
+    unitChange?: {from: string; to: string}
     verdict: Verdict
     reason: string
     note?: string
@@ -41,7 +50,14 @@ type AttributeDoc = {
 
 export type Finding = {
   key: string
-  status: 'current' | 'deprecated'
+  kind: Kind
+  // Present when the finding is a deprecated enum value of the attribute.
+  value?: string
+  status: 'current' | 'deprecated' | 'dropped'
+  unit?: string
+  unitChange?: {from: string; to: string}
+  lastSeenIn?: string
+  specErratum?: string
   verdict: Verdict | 'CURRENT'
   lines: number[]
   forms: Usage['form'][]
@@ -81,21 +97,21 @@ async function keyIndex(trace: TraceEntry[]) {
     trace.push({tool: 'groq_query', query: '(key index, cached)', ms: 0})
     return cachedIndex.index
   }
-  const keys = await groq<Array<{key: string; members?: string[]}>>(
-    '*[_type == "attribute"]{key, "members": members[].value}',
+  const keys = await groq<Array<{kind: Kind; key: string; members?: string[]; deprecatedValues?: string[]}>>(
+    '*[_type in ["attribute", "metric", "event"]]{"kind": _type, key, "members": members[].value, "deprecatedValues": members[defined(deprecated)].value}',
     trace,
   )
   cachedIndex = {index: buildIndex(keys), at: Date.now()}
   return cachedIndex.index
 }
 
-// Attribute keys named in plain prose, for example a chat question.
+// Attribute, metric and event names mentioned in plain prose, for example a chat question.
 export async function analyzeKeys(text: string, trace: TraceEntry[]): Promise<string[]> {
   const index = await keyIndex(trace)
   const found = new Set<string>()
   for (const m of text.matchAll(/[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+/g)) {
     const k = m[0].replace(/\.$/, '')
-    if (index.byKey.has(k)) found.add(k)
+    if (index.byKey.has(k) || index.metrics.has(k) || index.events.has(k)) found.add(k)
   }
   return [...found].slice(0, 12)
 }
@@ -113,6 +129,22 @@ function chooseReplacement(doc: AttributeDoc, spanKind: SpanKind | null) {
   switch (dep.verdict) {
     case 'RENAMED':
     case 'REPLACED':
+      // An event whose content now travels on a span attribute: this is a
+      // change of signal, not a string swap, so it never goes in the patch.
+      if (reps[0] && reps[0].when !== 'always') {
+        return {
+          replacement: reps[0].key,
+          reason: `Stop emitting this ${doc._type}. The spec now records it ${reps[0].when.replace(/^as an? /, 'as a ')}: ${reps[0].key}.`,
+          decide: true,
+        }
+      }
+      if (dep.unitChange) {
+        return {
+          replacement: reps[0]?.key ?? null,
+          reason: `The name changes and so does the unit, from ${dep.unitChange.from} to ${dep.unitChange.to}. Recorded values must be converted, not just renamed.`,
+          decide: true,
+        }
+      }
       if (dep.valueChanges) {
         return {replacement: reps[0]?.key ?? null, reason: `The key changes and so does the value format: ${dep.note ?? 'see the spec note'}`, decide: true}
       }
@@ -138,6 +170,12 @@ function chooseReplacement(doc: AttributeDoc, spanKind: SpanKind | null) {
       return {replacement: null, reason: `Moved to ${dep.movedTo?.label ?? 'another repository'}. Not removed.`, decide: true}
     case 'USE_SIGNAL_FIELD':
       return {replacement: null, reason: dep.note ?? 'Use a field of the signal instead.', decide: true}
+    case 'DROPPED':
+      return {
+        replacement: null,
+        reason: `Last defined in ${doc.lastSeenIn}, then removed from the spec with no deprecation entry. The registry names no replacement.`,
+        decide: true,
+      }
     default:
       return {replacement: null, reason: 'Needs human review.', decide: true}
   }
@@ -152,35 +190,40 @@ export async function scan(code: string): Promise<ScanResult> {
   const {release, attrs: docs} = await groq<{release: string | null; attrs: AttributeDoc[]}>(
     `{
       "release": *[_type == "specRelease"][0].tag,
-      "attrs": *[_type == "attribute" && key in [${keys.map(groqString).join(', ')}]]{
-        _id, key, status, stability, brief, introducedIn,
+      "attrs": *[_type in ["attribute", "metric", "event"] && key in [${keys.map(groqString).join(', ')}]]{
+        _id, _type, key, status, stability, brief, introducedIn, lastSeenIn, unit, specErratum,
         "source": source{url, release},
-        deprecation{verdict, reason, note, deprecatedIn, valueChanges, movedTo{label, url},
-          "replacements": replacements[]{key, when, "stability": attribute->stability}}
+        "deprecatedMembers": members[defined(deprecated)]{value, deprecated, replacementValue},
+        deprecation{verdict, reason, note, deprecatedIn, valueChanges, unitChange{from, to}, movedTo{label, url},
+          "replacements": replacements[]{key, when, "stability": coalesce(attribute->stability, metric->stability)}}
       }
     }`,
     trace,
   )
-  const byKey = new Map(docs.map((d) => [d.key, d]))
+  const byKey = new Map(docs.map((d) => [`${d._type}:${d.key}`, d]))
 
-  // Group usages by key and span kind, so one key used on both client and
-  // server spans produces two findings with two different answers.
+  // Group usages by name, kind and span kind, so one key used on both client
+  // and server spans produces two findings with two different answers.
   const groups = new Map<string, Usage[]>()
   for (const u of usages) {
-    const doc = byKey.get(u.key)
+    const doc = byKey.get(`${u.kind}:${u.key}`)
     const kindMatters = doc?.deprecation?.verdict === 'SPAN_KIND_DEPENDENT'
-    const g = `${u.key}|${kindMatters ? u.spanKind : ''}|${u.form === 'comment' ? 'comment' : 'code'}`
+    const g = `${u.kind}|${u.key}|${u.value ?? ''}|${kindMatters ? u.spanKind : ''}|${u.form === 'comment' ? 'comment' : 'code'}`
     groups.set(g, [...(groups.get(g) ?? []), u])
   }
 
   const findings: Finding[] = []
-  const edits: Edit[] = []
+  const pending: Array<{finding: Finding; edit: Edit}> = []
   for (const group of groups.values()) {
     const first = group[0]
-    const doc = byKey.get(first.key)
+    const doc = byKey.get(`${first.kind}:${first.key}`)
     if (!doc) continue
     const base = {
       key: doc.key,
+      kind: doc._type,
+      unit: doc.unit,
+      lastSeenIn: doc.lastSeenIn,
+      specErratum: doc.specErratum,
       status: doc.status,
       lines: group.map((u) => u.line),
       forms: [...new Set(group.map((u) => u.form))],
@@ -189,6 +232,32 @@ export async function scan(code: string): Promise<ScanResult> {
       documentId: doc._id,
       spanKind: first.spanKind,
       spanKindLine: first.spanKindLine,
+    }
+    // A deprecated enum value on an attribute whose key may be perfectly current.
+    if (first.value) {
+      const member = doc.deprecatedMembers?.find((m) => m.value === first.value)
+      if (!member) continue
+      const finding: Finding = {
+        ...base,
+        value: first.value,
+        status: 'deprecated',
+        verdict: member.replacementValue ? 'VALUE_RENAMED' : 'VALUE_REMOVED',
+        replacement: member.replacementValue ?? null,
+        replacementReason: member.replacementValue
+          ? `The value "${first.value}" of ${doc.key} was renamed to "${member.replacementValue}".`
+          : `The value "${first.value}" of ${doc.key} is deprecated: ${member.deprecated}`,
+        replacements: [],
+        needsDecision: !member.replacementValue,
+        note: member.deprecated,
+        deprecatedInPinned: null,
+      }
+      findings.push(finding)
+      if (member.replacementValue) {
+        for (const u of group) {
+          if (u.form === 'string') pending.push({finding, edit: {line: u.line, from: u.text, to: `${u.text[0]}${member.replacementValue}${u.text[0]}`}})
+        }
+      }
+      continue
     }
     if (doc.status === 'current' || !doc.deprecation) {
       findings.push({
@@ -204,8 +273,9 @@ export async function scan(code: string): Promise<ScanResult> {
     }
     const dep = doc.deprecation
     const choice = chooseReplacement(doc, first.spanKind)
-    findings.push({
+    const finding: Finding = {
       ...base,
+      unitChange: dep.unitChange,
       verdict: dep.verdict,
       replacement: choice.replacement,
       replacementReason: choice.reason,
@@ -213,17 +283,20 @@ export async function scan(code: string): Promise<ScanResult> {
       needsDecision: choice.decide,
       deprecatedIn: dep.deprecatedIn,
       deprecatedInPinned: pinnedVersion && dep.deprecatedIn ? cmpVersion(dep.deprecatedIn, pinnedVersion.version) <= 0 : null,
-      note: dep.note,
+      note: dep.verdict === 'DROPPED' ? undefined : dep.note,
       movedTo: dep.movedTo,
-    })
-    if (choice.replacement && !choice.decide) {
-      for (const u of group) if (u.form === 'string') edits.push({line: u.line, from: `${u.text[0]}${u.key}${u.text[0]}`, to: `${u.text[0]}${choice.replacement}${u.text[0]}`})
+    }
+    findings.push(finding)
+    if (choice.replacement) {
+      for (const u of group) {
+        if (u.form === 'string') pending.push({finding, edit: {line: u.line, from: `${u.text[0]}${u.key}${u.text[0]}`, to: `${u.text[0]}${choice.replacement}${u.text[0]}`}})
+      }
     }
   }
 
   // Knowledge Base: add what the official migration guide says about each key.
   const migrationGuides: ScanResult['migrationGuides'] = []
-  const deprecatedFindings = findings.filter((f) => f.status === 'deprecated')
+  const deprecatedFindings = findings.filter((f) => f.status !== 'current')
   const paths = deprecatedFindings.length ? await kbPaths(trace).catch(() => []) : []
   const guideOf = (key: string) => guideFor(key.split('.')[0], paths)
   const entries = [...new Set(deprecatedFindings.map((f) => guideOf(f.key)).filter((e): e is string => Boolean(e)))]
@@ -241,6 +314,12 @@ export async function scan(code: string): Promise<ScanResult> {
           const kinds = [...new Set((g?.section ?? '').toLowerCase().match(/\b(client|server)\b/g) ?? [])]
           const kind = kinds.length === 1 ? kinds[0] : undefined
           if (g && kind && f.spanKind && kind !== f.spanKind) g.appliesToOtherSpanKind = true
+          // A name the registry dropped silently: the guide is the only source of a replacement.
+          if (g && f.verdict === 'DROPPED' && g.change.includes('→')) {
+            const guided = g.change.split('→')[1].trim()
+            f.replacement = guided
+            f.replacementReason = `The registry has no record of this name after ${f.lastSeenIn}. The migration guide maps it to ${guided}${g.comment ? `. ${g.comment}` : ''}.`
+          }
           if (g && (f.verdict === 'RENAMED' || f.verdict === 'REPLACED') && /^(removed|integrated)\b/i.test(g.comment ?? '')) {
             g.disagreesWithRegistry = true
             f.needsDecision = true
@@ -254,11 +333,11 @@ export async function scan(code: string): Promise<ScanResult> {
     }),
   )
 
-  const held = new Set(findings.filter((f) => f.needsDecision).map((f) => f.key))
-  const safeEdits = edits.filter((e) => ![...held].some((k) => e.from.slice(1, -1) === k))
+  // Only unambiguous renames reach the patch; anything that needs a person stays out.
+  const safeEdits = pending.filter((p) => !p.finding.needsDecision && p.finding.replacement).map((p) => p.edit)
 
   findings.sort((a, b) => Number(a.status === 'current') - Number(b.status === 'current') || a.lines[0] - b.lines[0])
-  const deprecated = findings.filter((f) => f.status === 'deprecated')
+  const deprecated = findings.filter((f) => f.status !== 'current')
   return {
     language,
     pinnedVersion,
