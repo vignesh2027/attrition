@@ -1,5 +1,5 @@
 import {defineField, defineType} from 'sanity'
-import {attribute, deprecation, externalLink, replacement, sourceRef} from './attribute'
+import {attribute, deprecation, event, externalLink, metric, replacement, sourceRef} from './attribute'
 
 export const namespace = defineType({
   name: 'namespace',
@@ -31,6 +31,8 @@ export const specRelease = defineType({
           fields: [
             {name: 'tag', type: 'string'},
             {name: 'attributes', type: 'number'},
+            {name: 'metrics', type: 'number'},
+            {name: 'events', type: 'number'},
             {name: 'deprecated', type: 'number'},
           ],
           preview: {
@@ -43,4 +45,4 @@ export const specRelease = defineType({
   ],
 })
 
-export const schemaTypes = [attribute, deprecation, replacement, sourceRef, externalLink, namespace, specRelease]
+export const schemaTypes = [attribute, metric, event, deprecation, replacement, sourceRef, externalLink, namespace, specRelease]

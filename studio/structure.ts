@@ -19,13 +19,32 @@ export const structure: StructureResolver = (S) =>
                   .child(
                     S.documentList()
                       .title(title)
-                      .filter('_type == "attribute" && deprecation.verdict == $v')
+                      .filter('_type in ["attribute", "metric", "event"] && deprecation.verdict == $v')
                       .params({v: value})
                       .defaultOrdering([{field: 'key', direction: 'asc'}]),
                   ),
               ),
             ),
         ),
+      S.listItem()
+        .title('Dropped without notice')
+        .child(
+          S.documentList()
+            .title('Left the spec with no deprecation entry')
+            .filter('_type in ["attribute", "metric", "event"] && status == "dropped"')
+            .defaultOrdering([{field: 'key', direction: 'asc'}]),
+        ),
+      S.listItem()
+        .title('Metrics with a unit change')
+        .child(
+          S.documentList()
+            .title('Renamed and the unit changed')
+            .filter('_type == "metric" && defined(deprecation.unitChange)')
+            .defaultOrdering([{field: 'key', direction: 'asc'}]),
+        ),
+      S.listItem()
+        .title('Spec errata')
+        .child(S.documentList().title('Upstream inconsistencies').filter('defined(specErratum)')),
       S.listItem()
         .title('Current attributes')
         .child(
@@ -36,6 +55,8 @@ export const structure: StructureResolver = (S) =>
         ),
       S.divider(),
       S.documentTypeListItem('attribute').title('All attributes'),
+      S.documentTypeListItem('metric').title('All metrics'),
+      S.documentTypeListItem('event').title('All events'),
       S.documentTypeListItem('namespace').title('Namespaces'),
       S.documentTypeListItem('specRelease').title('Spec releases scanned'),
       S.divider(),
