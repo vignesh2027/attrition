@@ -1,31 +1,33 @@
 # Attrition
 
-**Find the OpenTelemetry attribute names the spec already retired.**
+**Find the OpenTelemetry names the spec already retired.**
 
-Paste instrumentation code. Attrition finds every attribute key and SDK constant in it, checks each one against all 940 attributes of the OpenTelemetry semantic conventions, and tells you what to use instead, for your span kind, with the release that deprecated it and the exact spec line that says so. It then writes a patch for the renames that are safe to automate and leaves the rest for a person.
+Paste instrumentation code. Attrition finds every attribute key, metric name, event name, enum value and SDK constant in it, checks each one against 1,563 names from 26 releases of the OpenTelemetry semantic conventions, and tells you what to use instead: for your span kind, with the release that retired it, the exact spec line that says so, and what the official migration guide adds. It writes a patch only for the renames that are safe to automate and leaves the rest for a person.
 
 | | |
 | --- | --- |
 | Live app | https://attrition-otel.vercel.app (no login) |
+| Knowledge Base decisions | https://attrition-otel.vercel.app/decisions |
 | Project page | https://vignesh2027.github.io/attrition |
 | Sanity project ID | `y9raau23`, dataset `production` (public) |
-| Public dataset query | [deprecated attributes as JSON](https://y9raau23.apicdn.sanity.io/v2025-02-19/data/query/production?query=*%5B_type%3D%3D%22attribute%22%26%26status%3D%3D%22deprecated%22%5D%7Bkey%2Cdeprecation%7D) |
+| Public dataset query | [every retired name as JSON](https://y9raau23.apicdn.sanity.io/v2025-02-19/data/query/production?query=*%5B_type%20in%20%5B%22attribute%22%2C%22metric%22%2C%22event%22%5D%20%26%26%20status%20!%3D%20%22current%22%5D%7B_type%2Ckey%2Cstatus%2Cdeprecation%7D) |
 | Sanity Studio | https://attrition.sanity.studio |
-| Context MCP (dataset) | `https://api.sanity.io/v2026-03-03/context/mcp/y9raau23/production/attrition` |
-| Context MCP (Knowledge Base) | `https://api.sanity.io/v1/context/organizations/oc2g3x7ee/mcp/attrition-kb` |
+| Context MCP, dataset | `https://api.sanity.io/v1/context/organizations/oc2g3x7ee/mcp/attrition` |
+| Context MCP, Knowledge Base | `https://api.sanity.io/v1/context/organizations/oc2g3x7ee/mcp/attrition-kb` |
 
-![Scan of a TypeScript checkout service](docs/img/node-light.png)
+![Attrition scanning a TypeScript checkout service](docs/img/hero.png)
+
+![Demo: two samples and the Knowledge Base decisions](docs/img/demo.gif)
 
 ## Why this needs structured content
 
-The semantic conventions rename attributes between releases. `http.method` became `http.request.method`, `db.system` became `db.system.name`, and in v1.42.0, 58 GenAI attributes (`gen_ai.*`, `mcp.*`, `openai.*`) moved to a separate repository. Old blog posts, SDK constants and copied snippets keep the retired names alive.
+The semantic conventions rename things between releases, and old blog posts, SDK constants and copied snippets keep the retired names alive. A text search over the docs cannot answer these correctly:
 
-A text search over the docs cannot answer these correctly:
-
-* **`net.peer.name` has two answers.** It is `server.address` on client spans and `client.address` on server spans. The agent reads the span kind from your code and picks one. If the code does not state a span kind, it asks.
-* **Some keys are split, merged or conditional.** `db.sql.table` becomes `db.collection.name` only if the value is not extracted from `db.query.text`. `code.function` is folded into a fully qualified `code.function.name`.
-* **Some are not renames at all.** `event.name` moves to the log record's EventName field. 21 attributes were removed with no replacement.
-* **The registry and the migration guide can disagree.** The registry says `db.name` was renamed to `db.namespace`. The database migration guide says it was removed and integrated into `db.namespace`. The app surfaces both and keeps that key out of the patch.
+* **One name, two answers.** `net.peer.name` is `server.address` on client spans and `client.address` on server spans. Attrition reads the span kind from your code. If the code does not state one, it asks.
+* **Names that vanished with no record.** `http.server.duration` was in v1.21.0 and is simply gone from the registry, with no deprecation entry. 50 names left this way. Only the migration guide records the replacement, `http.server.request.duration`, and that the unit changed from ms to s.
+* **A rename that changes the data.** `db.client.connections.wait_time` became `db.client.connection.wait_time`, and the unit went from ms to s. Renaming the key alone would record wrong values. Attrition compares the two metric documents and holds it out of the patch.
+* **Values, not just keys.** `cloud.platform = "azure_vm"` is a current key with a retired value; it is now `"azure.vm"`.
+* **Sources that disagree.** The registry says `db.name` was renamed to `db.namespace`; the database guide says it was removed and integrated. Attrition shows both and keeps that key for a person.
 
 Each of those facts is a field in a Sanity document, not a sentence in a page.
 
@@ -37,93 +39,78 @@ flowchart LR
     R["26 tagged releases<br/>v1.21.0 to v1.44.0"]
     G["Migration guides"]
   end
-  R -->|scripts/build-dataset.mjs<br/>deterministic| D[("Sanity dataset<br/>1,031 documents")]
-  D -->|dataset slice, 98 docs| KB[("Knowledge Base<br/>107 sources")]
+  R -->|scripts/build-dataset.mjs<br/>deterministic| D[("Sanity dataset<br/>1,654 documents")]
+  D -->|137 retired names| KB[("Knowledge Base<br/>144 sources")]
   G --> KB
-  D --> M1["Context MCP<br/>groq_query"]
-  KB --> M2["Context MCP<br/>knowledge_base_read"]
-  C["Your code"] --> X["Extractor<br/>keys, constants, span kind"]
+  D --> M1["Context MCP: attrition<br/>groq_query"]
+  KB --> M2["Context MCP: attrition-kb<br/>knowledge_base_search, knowledge_base_read"]
+  C["Your code"] --> X["Extractor<br/>names, constants, values, span kind"]
   X --> A["Scan API"]
   M1 --> A
   M2 --> A
   A --> U["Web app"]
-  A --> CLI["Go CLI"]
+  A --> CLI["Go CLI and GitHub Action"]
+  D -->|public snapshot| RS["Rust offline scanner"]
   M1 --> Chat["Chat agent"]
   M2 --> Chat
+  M1 --> Py["Python agent"]
+  M2 --> Py
 ```
 
-1. **Import.** `scripts/fetch-semconv.mjs` downloads every tagged release since v1.21.0. `scripts/build-dataset.mjs` builds one `attribute` document per key from the newest release, and uses the older releases to record `introducedIn` and `deprecatedIn`. It reads both YAML formats, including the `definition/2` format that v1.44.0 introduced for stable attributes.
-2. **Verdicts in code, not in a model.** Each deprecated attribute gets a verdict computed from the spec's own `reason`, `renamed_to` and `note` fields. Replacements are stored with the condition they apply under (`always`, `client spans`, `server spans`, `together`).
-3. **Scan.** The extractor finds string keys, SDK constants (Go `semconv.DBSystemKey`, JS `SEMATTRS_HTTP_METHOD` and `ATTR_*`, Java and Python `*Attributes.DB_SYSTEM`), enum constants like `semconv.DBSystemRedis`, the span kind in effect, and any pinned semconv version. It sends one GROQ query through the Context MCP `groq_query` tool, then reads the matching migration guide entries through `knowledge_base_read`.
-4. **Answer.** Every finding shows the verdict, the replacement for its span kind, when it was deprecated, whether your pinned version already had it deprecated, the migration guide row, and a link to the spec YAML line. The trace panel shows every Context call and its GROQ.
+1. **Import.** `scripts/fetch-semconv.mjs` downloads every tagged release since v1.21.0. `scripts/build-dataset.mjs` builds one document per attribute, metric and event from the newest release, and reads every older release for `introducedIn`, `deprecatedIn`, and names that disappeared with no deprecation entry (`DROPPED`, with `lastSeenIn`). It handles both YAML formats, including the `definition/2` format of v1.44.0.
+2. **Verdicts in code, not in a model.** Each retired name gets a verdict computed from the spec's own `reason`, `renamed_to` and `note` fields. Replacements carry the condition they apply under (`always`, `client spans`, `server spans`, `consumer spans`, `together`). A renamed metric whose replacement has a different unit gets `unitChange`, found by comparing the two documents.
+3. **Scan.** The extractor finds string keys, metric and event names (read by the call they sit in, since a few names are both), deprecated enum values next to their key, SDK constants in Go, TypeScript, Java and Python, the span kind in effect, and any pinned semconv version. One `groq_query` reads every verdict. Then `knowledge_base_search` finds the right migration guide entry for each retired name and `knowledge_base_read` reads it. No entry path is hard-coded, because Knowledge Base builds rename entries.
+4. **Answer.** Each finding shows the verdict, the replacement, the release, the unit change, the guide row and a link to the spec YAML line. The trace panel lists every Context call and its GROQ.
 
 ## Verdicts
 
-| Verdict | Count | Meaning |
-| --- | ---: | --- |
-| `RENAMED` | 97 | One new key, always |
-| `REPLACED` | 15 | One new key; the spec does not call it a rename |
-| `SPAN_KIND_DEPENDENT` | 3 | Different key per span kind, or none for one kind |
-| `SPLIT` | 4 | Several keys, set together |
-| `CONDITIONAL` | 2 | The note states a condition, or the key depends on usage |
-| `MERGED_INTO` | 4 | Fold the value into another key |
-| `USE_SIGNAL_FIELD` | 2 | Use a field of the span or log record |
-| `MOVED_OUT` | 58 | Maintained in another repository now |
-| `REMOVED` | 21 | Delete it |
+Across 940 attributes, 571 metrics and 36 events:
 
-Four replacements also change the value format (a type or a string representation), for example `rpc.grpc.status_code`. Those carry `valueChanges: true` and are never auto-patched.
+| Verdict | Attributes | Metrics | Events | Meaning |
+| --- | ---: | ---: | ---: | --- |
+| `RENAMED` | 97 | 71 | 1 | One new name, always |
+| `REPLACED` | 15 | 5 | 5 | One new name; the spec does not call it a rename |
+| `SPAN_KIND_DEPENDENT` | 3 | | | Different key per span kind |
+| `SPLIT` | 4 | | | Several keys, set together |
+| `CONDITIONAL` | 2 | | | The note states a condition |
+| `MERGED_INTO` | 4 | | | Fold the value into another key |
+| `USE_SIGNAL_FIELD` | 2 | | | Use a field of the span or log record |
+| `MOVED_OUT` | 58 | 11 | 3 | Maintained in another repository now |
+| `REMOVED` | 21 | 10 | 1 | Delete it |
+| `DROPPED` | 16 | 30 | 4 | Left the spec with no deprecation entry |
 
-No attribute is left as `NEEDS_REVIEW`. The counts come from `data/summary.json`.
+24 enum values are deprecated on their own, for example `cloud.platform = "azure_vm"`. No name is left as `NEEDS_REVIEW`. The importer also found a copy-paste erratum in the upstream spec: two deprecated `system.linux.memory.*` entries carry the brief and unit of a network packet counter. It is recorded as `specErratum` instead of being reported as a unit change.
+
+## The Knowledge Base, and the decisions it raised
+
+Knowledge Base `kbI5ncVyqDpc` was built entirely from the Sanity CLI from 144 sources, inside the 150 document beta budget: 137 retired attributes and metrics bound from the dataset, five official migration guides, and two older spec pages that still use the retired names.
+
+Its build raised four real conflicts. The dataset says `http.server.duration` and `http.resend_count` left the registry with no replacement; the guides say they were renamed. Both are true at different levels, and the guide is the ground truth for what to use. Each conflict was resolved by a person, which turned it into a standing instruction for every later build, and the entries were rewritten to match. [See them side by side](https://attrition-otel.vercel.app/decisions), or read [kb/DECISIONS.md](kb/DECISIONS.md).
+
+![Knowledge Base decisions](docs/img/decisions-light.png)
 
 ## Real repositories
 
-The Go CLI scanned five open-source repositories at pinned commits. Full results with a link to every line are in [bench/RESULTS.md](bench/RESULTS.md).
+The Go CLI scanned five open-source repositories at pinned commits, and the Rust offline scanner matched every count. Full results with a link to every line: [bench/RESULTS.md](bench/RESULTS.md).
 
-| Repository | Deprecated usages in code | Files to touch |
+| Repository | Retired names in code | Files to touch |
 | --- | ---: | ---: |
 | open-telemetry/opentelemetry-demo | 6 | 4 |
 | jaegertracing/jaeger | 67 | 13 |
-| redis/go-redis | 9 | 4 |
+| redis/go-redis | 16 | 4 |
 | go-gorm/opentelemetry | 0 | 0 |
 | uptrace/opentelemetry-go-extra | 18 | 7 |
 
-A finding means the key is deprecated in the spec. Test fixtures that read old data, or libraries that dual-emit on purpose during a migration, may keep the old key for now.
-
-## Sanity content model
-
-| Type | Holds |
-| --- | --- |
-| `attribute` | `key`, `status`, `stability`, `type`, `brief`, `note`, `examples`, enum `members`, `introducedIn`, `deprecation`, `source` |
-| `deprecation` (object) | `verdict`, `reason`, `note`, `deprecatedIn`, `replacements[]`, `movedTo` |
-| `replacement` (object) | `key`, `when`, weak reference to the replacement `attribute` |
-| `sourceRef` (object) | `release`, `file`, `line`, `url` to the exact YAML line |
-| `namespace` | `name`, `attributeCount` |
-| `specRelease` | `tag` and per-release attribute and deprecation counts |
-| `sanity.agentContext` | The Agent Context document: slug, GROQ filter and instructions for the MCP endpoint |
-
-## Repository layout
-
-| Path | What it is |
-| --- | --- |
-| `scripts/` | Fetch the spec releases and build `data/semconv.ndjson` |
-| `studio/` | Sanity Studio, schema, structure, Agent Context document |
-| `kb/` | Knowledge Base sources and the script that rebuilds it |
-| `web/` | Next.js and TypeScript: scan API, chat agent, UI |
-| `cli/` | Go CLI for local trees and CI, also used by the GitHub Action |
-| `rust/` | Rust offline scanner for pre-commit hooks and air-gapped CI |
-| `python/` | Python terminal agent on the same Context MCP endpoints |
-| `action.yml` | GitHub Action |
-| `bench/` | Real repository scan and results |
-| `docs/` | GitHub Pages site and screenshots |
+go-redis's `redisotel` package registers the old `db.client.connections.*` pool metrics and records `create_time` and `use_time` in milliseconds, so a plain rename to the new names would report values a thousand times too large. A finding means the name is retired in the spec; test fixtures that read old data, or libraries that dual-emit on purpose, may keep it for now.
 
 ## Four ways to run it
 
 | | Language | Needs network | Best for |
 | --- | --- | --- | --- |
-| [Web app](https://attrition-otel.vercel.app) | TypeScript | yes | Pasting a file, reading the evidence |
-| [`cli/`](cli) | Go | yes (live Sanity Context) | CI and whole repositories, `-fix` |
-| [`rust/`](rust) | Rust | only once, for the snapshot | Pre-commit hooks, air-gapped CI |
-| [`python/`](python) | Python | yes | Asking questions from a terminal, other agent stacks |
+| [Web app](https://attrition-otel.vercel.app) | TypeScript, Next.js | yes | Pasting a file, reading the evidence, asking the agent |
+| [`cli/`](cli) | Go | yes, live Sanity Context | Whole repositories and CI, `-fix` for safe renames |
+| [`rust/`](rust) | Rust | once, for the snapshot | Pre-commit hooks and air-gapped CI |
+| [`python/`](python) | Python | yes | A terminal agent on the same MCP endpoints |
 
 ### GitHub Action
 
@@ -137,15 +124,49 @@ A finding means the key is deprecated in the spec. Test fixtures that read old d
 
 It writes the report to the job summary and fails the job when code uses a retired name.
 
-## Use the CLI
+### CLI
 
 ```sh
 cd cli && go build -o attrition .
-./attrition ~/code/my-service              # report
-./attrition -fail ~/code/my-service        # exit 1 on any deprecated usage (CI)
-./attrition -fix ~/code/my-service         # apply only the unambiguous string renames
-./attrition -json ~/code/my-service        # machine-readable
+./attrition ~/code/my-service           # report
+./attrition -fail ~/code/my-service     # exit 1 on any retired name in code (CI)
+./attrition -fix ~/code/my-service      # apply only the unambiguous string renames
+./attrition -json ~/code/my-service     # machine-readable
 ```
+
+## Sanity content model
+
+| Type | Holds |
+| --- | --- |
+| `attribute` | `key`, `status` (current, deprecated, dropped), `stability`, `type`, `brief`, `note`, `examples`, enum `members` with `deprecated` and `replacementValue`, `introducedIn`, `lastSeenIn`, `deprecation`, `source` |
+| `metric` | `key`, `instrument`, `unit`, `status`, `stability`, `introducedIn`, `lastSeenIn`, `specErratum`, `deprecation`, `source` |
+| `event` | `key`, `status`, `stability`, `introducedIn`, `lastSeenIn`, `deprecation`, `source` |
+| `deprecation` (object) | `verdict`, `reason`, `note`, `deprecatedIn`, `replacements[]`, `valueChanges`, `unitChange`, `movedTo` |
+| `replacement` (object) | `key`, `when`, weak references to the replacement attribute or metric |
+| `sourceRef` (object) | `release`, `file`, `line`, `url` to the exact YAML line |
+| `namespace`, `specRelease` | Namespace counts, and per-release attribute, metric and event counts |
+
+The Studio groups retired names by verdict and adds views for silently dropped names, metrics with a unit change, and spec errata.
+
+| | |
+| --- | --- |
+| ![net.peer.name in the Studio](docs/img/studio-span-kind.png) | ![A metric with a unit change](docs/img/studio-unit-change.png) |
+| ![A silently dropped metric](docs/img/studio-dropped-metric.png) | ![A spec erratum](docs/img/studio-erratum.png) |
+
+## Repository layout
+
+| Path | What it is |
+| --- | --- |
+| `scripts/` | Fetch the spec releases and build `data/semconv.ndjson` |
+| `studio/` | Sanity Studio, schema, structure, and `mcp-endpoints.mjs` for both Context MCP endpoints |
+| `kb/` | Knowledge Base sources, rebuild script and decision log |
+| `web/` | Next.js: scan API, chat agent, Decisions page, UI |
+| `cli/` | Go CLI, also used by the GitHub Action |
+| `rust/` | Rust offline scanner |
+| `python/` | Python terminal agent |
+| `bench/` | Real repository scan, results and Rust parity check |
+| `docs/` | GitHub Pages site and screenshots |
+| `tools/shots/` | Scripts that take the screenshots and the demo GIF |
 
 ## Run it yourself
 
@@ -153,21 +174,25 @@ cd cli && go build -o attrition .
 npm install && npm run fetch && npm run build-data   # data/semconv.ndjson
 cd studio && npm install && npx sanity login
 npx sanity dataset import ../data/semconv.ndjson production --replace
-npx sanity schema deploy && node agent-context.mjs
+npx sanity schema deploy && node mcp-endpoints.mjs
 cd ../web && npm install && npm run dev
 ```
 
-`web/.env.local` needs `SANITY_API_READ_TOKEN` (project viewer). The Knowledge Base enrichment also needs `SANITY_KB_MCP_URL`, `SANITY_KB_ID` and `SANITY_ORGANIZATION_TOKEN` (organization, Context Viewer). The chat agent needs `GROQ_API_KEY`. Scanning works without it.
+`web/.env.local` needs `SANITY_ORGANIZATION_TOKEN` (organization token with Context Viewer), `SANITY_KB_MCP_URL` and `SANITY_KB_ID` for the Knowledge Base, and `GROQ_API_KEY` for the chat agent. Scanning works without the chat key.
 
 ## Tests
 
 ```sh
-cd web && npm test          # extractor and patch tests
+cd web && npm test           # extractor and patch tests
+cd rust && cargo test        # Rust extractor tests
 cd cli && go vet ./...
+WORK=/tmp/attrition-bench bench/run.sh && WORK=/tmp/attrition-bench bench/parity.sh
 ```
+
+CI runs the web, Go and Rust checks and runs the Action on the repository's own samples.
 
 ## Credits
 
-Attribute data and the files in `kb/sources/` come from [open-telemetry/semantic-conventions](https://github.com/open-telemetry/semantic-conventions) and [open-telemetry/opentelemetry-specification](https://github.com/open-telemetry/opentelemetry-specification), Apache License 2.0. The Go sample is `redishook.go` from my [Bug Smash entry](https://github.com/vignesh2027/bugsmash-sentry-demo).
+Spec data and the files in `kb/sources/` come from [open-telemetry/semantic-conventions](https://github.com/open-telemetry/semantic-conventions) and [open-telemetry/opentelemetry-specification](https://github.com/open-telemetry/opentelemetry-specification), Apache License 2.0. The Go sample is `redishook.go` from my [Bug Smash entry](https://github.com/vignesh2027/bugsmash-sentry-demo).
 
 Built by [vignesh2027](https://github.com/vignesh2027) for the DEV Sanity Challenge. MIT License.
